@@ -13,6 +13,7 @@ Aplikace slouží k vizualizaci a analýze detailního 3D digitálního dvojčet
 # Webová aplikace: Přístup
 
 Usere name: viewer_fzp
+
 Password: host_1234
 
 ---
