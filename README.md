@@ -10,6 +10,13 @@ Aplikace slouží k vizualizaci a analýze detailního 3D digitálního dvojčet
 
 ---
 
+# Webová aplikace: Přístup
+
+Usere name: viewer_fzp
+Password: host_1234
+
+---
+
 This interactive web application was developed as part of my diploma thesis at **Jan Evangelista Purkyne University in Ústí nad Labem, Faculty of Environment, Department of Geoinformatics**.
 
 The application visualizes and allows for analysis of a detailed 3D digital twin of the large ACHVL industrial complex (Lovosice Chemical Plant). Its primary goal is to demonstrate the practical application of digital twins and geoinformation tools to support **crisis and safety management**.
