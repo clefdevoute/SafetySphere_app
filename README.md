@@ -83,13 +83,13 @@ The application visualizes and allows for analysis of a detailed 3D digital twin
 
 Plný text diplomové práce "Tvorba digitálního dvojčete průmyslového areálu s využitím bezkontaktních metod sběru prostorových dat jako základ pro prostorové analýzy a simulace krizových situací", která popisuje celý výzkum včetně metodiky sběru dat, zpracování, fúze a podrobných analýz:
 
-**[Odkaz na vaši diplomovou práci - např. na repozitáři školy, pokud je veřejně dostupná]**
+**[Odkaz na vaši diplomovou práci - zatím není veřejně publikována]**
 
 ---
 
 The full text of the diploma thesis, "Creation of a digital twin of an industrial area using non-contact methods of spatial data collection as a basis for spatial analyses and simulations of crisis situations," describing the entire research including data acquisition methodology, processing, fusion, and detailed analyses:
 
-**[Link to your diploma thesis - e.g., on your university's repository, if publicly available]**
+**[Link to your diploma thesis - e.g., on your university's repository**
 
 ## Poděkování (Acknowledgments)
 
