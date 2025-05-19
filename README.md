@@ -101,7 +101,7 @@ I would like to thank my supervisor doc. Ing. Jan Pacina, Ph.D. for his valuable
 
 ## Licence (License)
 
-Tento projekt je zveřejněn pod **[Zde vložte název licence, např. licencí MIT]**.
+Tento projekt je zveřejněn pod **[MIT]**.
 
 ---
 
