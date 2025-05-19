@@ -1,5 +1,5 @@
 # SafetySphere_app v2.5
-**Datum poslední aktualizace: [Doplňte aktuální datum, např. 23.05.2024]**
+**Datum poslední aktualizace: [23.05.2024]**
 
 Technologie: ArcGIS Maps SDK for JavaScript v4.x, HTML5, CSS3
 
