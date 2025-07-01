@@ -1,6 +1,8 @@
 # SafetySphere_app v2.5
 **Datum poslední aktualizace: [23.05.2024]**
 
+Autor: Oto Weber (clefdevout@gmail.com)
+
 Technologie: ArcGIS Maps SDK for JavaScript v4.x, HTML5, CSS3
 
 ## Webová aplikace: Digitální dvojče Průmyslového Areálu ACHVL pro krizové řízení
