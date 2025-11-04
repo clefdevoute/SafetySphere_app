@@ -4,7 +4,7 @@
 1. **Nástroj pro kreslení 3D zón (buffer zóny)** - umožňuje vytvářet 3D buffery kolem bodů, linií nebo polygonů
 2. **Nástroj pro kreslení 3D objektů** - přidávání základních 3D tvarů (krychle, válec, koule, kužel) do scény
 3. **Legenda** - dynamická legenda zobrazující symboly a popisy vrstev
-4. **Vyhledávání** - widget pro geokódování a vyhledávání lokalit
+4. **Vyhledávání** - widget pro geokódování a vyhledávání lokalit (test)
 5. **Vylepšené UI** - reorganizace ovládacích prvků pro lepší uživatelský zážitek
 
 ### Vylepšení existujících funkcí:
