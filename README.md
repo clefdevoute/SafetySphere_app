@@ -1,6 +1,4 @@
-Na základě analýzy kódu verze 2.5 a porovnáním s aktuální funkcionalitou verze 3.0, zde je přehled hlavních změn a aktualizovaný README:
-
-## Hlavní změny od verze 2.5 do 3.0:
+## Co přináší nová verze SafetySphere 3.0:
 
 ### Nové funkce:
 1. **Nástroj pro kreslení 3D zón (buffer zóny)** - umožňuje vytvářet 3D buffery kolem bodů, linií nebo polygonů
