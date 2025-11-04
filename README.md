@@ -1,4 +1,4 @@
-## Co přináší nová verze SafetySphere 3.0:
+## Co přináší nová verze SafetySphere 3.0 (https://clefdevoute.github.io/SafetySphere_app/):
 
 ### Nové funkce:
 1. **Nástroj pro kreslení 3D zón (buffer zóny)** - umožňuje vytvářet 3D buffery kolem bodů, linií nebo polygonů
