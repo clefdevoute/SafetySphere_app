@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>SafetySphere | 3D Scene Analyst</title>
+    <style>
+        /* --- ZÁKLADNÍ STYLY --- */
+        :root {
+            --primary-color: #0066cc;
+            --primary-dark: #0052a3;
+            --secondary-color: #00a4dc;
+            --accent-color: #ff6b35;
+            --text-dark: #2c3e50;
+            --text-light: #5a6c7d;
+            --background-light: #f8fafc;
+            --background-white: #ffffff;
+            --border-light: #e1e8ed;
+            --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        html, body { 
+            width: 100%; 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', 'Avenir Next', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* --- SPLASH SCREEN - PŘEPRACOVÁNÝ DESIGN --- */
+        #splashScreen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            box-sizing: border-box;
+            transition: opacity 0.5s ease-out;
+            color: white;
+        }
+        
+        #splashScreen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .splash-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 50px 40px 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-medium);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+            color: var(--text-dark);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .splash-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            gap: 15px;
+        }
+        
+        .app-logo {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.5em;
+            font-weight: 700;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .app-title {
+            text-align: left;
+        }
+        
+        .app-title h1 {
+            margin: 0 0 5px 0;
+            color: var(--text-dark);
+            font-size: 2.4em;
+            font-weight: 700;
+            line-height: 1;
+        }
+        
+        .app-title p {
+            margin: 0;
+            color: var(--text-light);
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .app-description {
+            margin: 25px 0;
+            padding: 20px;
+            background: var(--background-light);
+            border-radius: 12px;
+            text-align: left;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .app-description h3 {
+            margin: 0 0 10px 0;
+            color: var(--text-dark);
+            font-size: 1.2em;
+        }
+        
+        .app-description p {
+            margin: 0;
+            color: var(--text-light);
+            line-height: 1.5;
+            font-size: 0.95em;
+        }
+
+        .splash-input-group { 
+            margin: 25px 0; 
+            display: flex; 
+            gap: 10px; 
+        }
+        
+        .splash-input-group calcite-input { 
+            flex-grow: 1; 
+        }
+        
+        .sample-scenes { 
+            margin-top: 25px; 
+            border-top: 1px solid var(--border-light); 
+            padding-top: 25px; 
+        }
+        
+        .sample-scenes h3 { 
+            margin-top: 0; 
+            margin-bottom: 15px; 
+            font-size: 1em; 
+            color: var(--text-light); 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px; 
+            font-weight: 600;
+        }
+        
+        .sample-buttons { 
+            display: flex; 
+            gap: 10px; 
+            justify-content: center; 
+            flex-wrap: wrap; 
+        }
+        
+        .splash-footer { 
+            position: absolute; 
+            bottom: 25px; 
+            left: 0; 
+            right: 0; 
+            text-align: center; 
+            font-size: 0.9em; 
+            color: rgba(255, 255, 255, 0.85);
+        }
+        
+        .splash-logos { 
+            margin-top: 10px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 25px; 
+        }
+        
+        .splash-logos img { 
+            height: 35px; 
+            opacity: 0.9;
+            /* Odstraněno: filter: brightness(0) invert(1); - aby se zobrazily původní barvy */
+        }
+        
+        .version-info {
+            margin-top: 8px;
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        /* --- ZBYTEK STYLŮ --- */
+        #loadingIndicator { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.9); z-index: 99; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #333; font-size: 1.2em; }
+        #loadingIndicator calcite-spinner { margin-bottom: 15px; }
+
+        #errorContainer { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: #f8f8f8; z-index: 101; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; color: #b91c1c; }
+        #errorContainer h2 { margin-top: 0; color: #b91c1c; }
+        #errorContainer calcite-button { margin-top: 20px; }
+
+        #appContainer { width: 100%; height: 100%; position: relative; visibility: hidden; opacity: 0; transition: opacity 0.5s ease-in; }
+        #appContainer.visible { visibility: visible; opacity: 1; }
+
+        #sceneview { width: 100%; height: 100%; margin: 0; padding: 0; }
+
+        /* --- JEDNOTNÉ STYLY PRO VŠECHNY WIDGETY --- */
+        .esri-ui .esri-component {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+            border-radius: 8px !important;
+        }
+
+        .esri-ui .esri-widget {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+        }
+
+        .esri-ui .esri-expand {
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        .esri-ui .esri-expand .esri-widget--button {
+            background-color: #007ac2 !important;
+            color: white !important;
+            border: none !important;
+            padding: 8px 12px !important;
+            border-radius: 6px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+            min-height: 32px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            font-family: 'Avenir Next W00', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+            font-weight: 500 !important;
+            font-size: 0.9em !important;
+        }
+
+        .esri-ui .esri-expand .esri-widget--button:hover {
+            background-color: #005e95 !important;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+
+        .esri-ui .esri-expand .esri-expand__content {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-radius: 8px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+            min-width: 280px !important;
+            max-width: 350px !important;
+            max-height: 60vh !important;
+            overflow-y: auto !important;
+        }
+
+        /* --- SPECIFICKÉ POZICE WIDGETŮ --- */
+        .esri-ui-top-left {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 300px;
+        }
+
+        .esri-ui-top-right {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 300px;
+        }
+
+        /* Hlavní navigační widgety - kompaktní */
+        .esri-ui-top-center {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        /* Widgety v dolní části */
+        .esri-ui-bottom-left {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 300px;
+        }
+
+        /* --- VIEWSHED CONTROLS - OPRAVA NA PŮVODNÍ FUNKČNÍ VERZI --- */
+        #viewshedControls {
+            position: absolute;
+            width: 250px;
+            right: 10px;
+            top: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.1);
+            padding: 12px;
+            visibility: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #viewshedControls calcite-card {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+        }
+
+        .manual-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .manual-inputs calcite-label {
+            width: 100%;
+        }
+
+        .manual-inputs calcite-input {
+            width: 100% !important;
+        }
+
+        /* --- PREVIEW CONTAINER - PŘEPRACOVÁNÍ --- */
+        #previewContainer {
+            width: 300px;
+            height: 225px;
+            position: absolute;
+            bottom: 60px;
+            right: 10px;
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 0;
+            transition: all 0.3s ease;
+            background: white;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            overflow: hidden;
+            visibility: inherit;
+        }
+
+        #previewContainer.expanded {
+            width: 100%;
+            height: 40%;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin: 0;
+            border-radius: 0;
+            border-width: 1px 0 0 0;
+        }
+
+        /* --- SCALE BAR - PŘEPRACOVÁNÍ --- */
+        .scale-bar-bottom-left {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 6px 10px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+
+        /* --- RESPONZIVITA --- */
+        @media (max-width: 768px) {
+            .esri-ui-top-left,
+            .esri-ui-top-right {
+                max-width: 250px;
+            }
+            
+            #viewshedControls {
+                width: 220px;
+            }
+            
+            #previewContainer {
+                width: 250px;
+                height: 188px;
+            }
+
+            .splash-content {
+                padding: 40px 25px 30px;
+            }
+            
+            .app-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .app-title {
+                text-align: center;
+            }
+            
+            .splash-input-group {
+                flex-direction: column;
+            }
+            
+            .sample-buttons {
+                flex-direction: column;
+            }
+            
+            .sample-buttons calcite-button {
+                width: 100%;
+            }
+        }
+
+        /* Notifikace */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 4px solid #007ac2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left-color: #35ac46;
+        }
+
+        .notification.error {
+            border-left-color: #b91c1c;
+        }
+
+        .notification.info {
+            border-left-color: #007ac2;
+        }
+
+        /* Styly pro zóny a kužely */
+        .zones-list, .cones-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .zone-item, .cone-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f5f5f5;
+            border-radius: 4px;
+            border-left: 4px solid #007ac2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .zone-item div, .cone-item div {
+            flex-grow: 1;
+        }
+
+        .zone-item strong, .cone-item strong {
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .zone-item .details, .cone-item .details {
+            font-size: 0.8em;
+            color: #666;
+        }
+    </style>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.31/"></script>
+    <script type="module" src="https://js.arcgis.com/calcite-components/2.13.2/calcite.esm.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/calcite-components/2.13.2/calcite.css" />
+</head>
+<body>
+
+    <div id="splashScreen">
+        <div class="splash-content">
+            <div class="app-header">
+                <div class="app-logo">S</div>
+                <div class="app-title">
+                    <h1>SafetySphere</h1>
+                    <p>3D Scene Analysis Platform</p>
+                </div>
+            </div>
+            
+            <div class="app-description">
+                <h3>Webový nástroj pro analýzu 3D scén</h3>
+                <p>SafetySphere umožňuje pokročilou analýzu viditelnosti, vytváření zón a 3D objektů v reálném prostředí. Načtěte vlastní 3D scénu nebo využijte připravené testovací scény.</p>
+            </div>
+            
+            <p><strong>Zadejte ID webové scény z ArcGIS Online nebo vyberte testovací scénu:</strong></p>
+            <div class="splash-input-group">
+                <calcite-input type="text" id="sceneIdInput" placeholder="Např: 972497cf7ddd4b69bfaac2c3310cfeea" value=""></calcite-input>
+                <calcite-button id="loadSceneButton" appearance="solid" icon-start="map">Načíst scénu</calcite-button>
+            </div>
+            
+            <div class="sample-scenes">
+                <h3>Testovací scény:<h3>
+                <div class="sample-buttons">
+                    <calcite-button appearance="outline" scale="s" icon-start="pin" data-scene-id="972497cf7ddd4b69bfaac2c3310cfeea">Lyon, Francie</calcite-button>
+                    <calcite-button appearance="outline" scale="s" icon-start="pin" data-scene-id="1b787e0335af4929a4a5267ebfa58a20">Bavaria Biking</calcite-button>
+                    <calcite-button appearance="outline" scale="s" icon-start="pin" data-scene-id="152041111abc4a09b4c5c616d09db13c">Grand Canyon</calcite-button>
+                    <calcite-button appearance="outline" scale="s" icon-start="pin" data-scene-id="caafbd83b40140ee8efee2e95ca4b6b6">Areál Lovochemie</calcite-button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="splash-footer">
+            Vytvořil: Oto Weber | Kontakt: clefdevout@gmail.com | Github/clefdevout
+            <div class="version-info">Verze: 3.0 | Listopad 2025</div>
+            <div class="splash-logos">
+                 <img src="https://raw.githubusercontent.com/clefdevoute/SafetySphere_app/main/ujep%20color%202025-11-02%20212611.jpg" 
+                alt="Logo UJEP" 
+                style="border-radius: 10px;">
+                 <img src="https://raw.githubusercontent.com/clefdevoute/SafetySphere_app/main/lovochemie%202025-11-02%20212611.png" 
+                 alt="Logo Lovochemie"
+                 style="border-radius: 10px;">
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingIndicator" style="display: none;">
+        <calcite-spinner active label="Načítám 3D scénu..."></calcite-spinner>
+        <span>Načítám 3D scénu...</span>
+    </div>
+
+    <div id="errorContainer" style="display: none;">
+        <h2>Chyba aplikace</h2>
+        <p id="errorMessage">Zde se zobrazí detail chyby.</p>
+        <calcite-button id="backToSplashButton" appearance="outline">Zpět na výběr scény</calcite-button>
+    </div>
+
+    <div id="appContainer">
+        <div id="sceneview"></div>
+        <div id="previewContainer"></div>
+        
+        <!-- Viewshed Controls  -->
+        <div id="viewshedControls">
+            <calcite-button id="createButton" width="full">Vytvořit viewshed</calcite-button>
+            <div class="manual-inputs" style="display: none;">
+                <calcite-label>
+                    Délka zorného pole (m)
+                    <calcite-input id="farDistanceInput" type="number" value="100" min="1"></calcite-input>
+                </calcite-label>
+                <calcite-label>
+                    Horizontální úzel zorného pole (°)
+                    <calcite-input id="horizontalFOVInput" type="number" value="45" min="1" max="360"></calcite-input>
+                </calcite-label>
+                <calcite-label>
+                    Vertikální úhel zorného pole (°)
+                    <calcite-input id="verticalFOVInput" type="number" value="60" min="1" max="360"></calcite-input>
+                </calcite-label>
+                <calcite-button id="applySettings" width="full" scale="s">Použít</calcite-button>
+            </div>
+            <calcite-button id="cancelButton" style="display: none" width="full" scale="s" appearance="outline">Zrušit</calcite-button>
+            <div id="promptText" style="display: none; margin-top: 5px; font-size: 0.8em;">
+                <em>Klikněte do scény pro umístění bodu</em>
+            </div>
+            <div id="previewControls" style="margin-top: 10px; display: none;">
+                <calcite-button id="expandPreviewButton" width="full" scale="s">Zvětšit náhled</calcite-button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Globální proměnné
+        let view = null;
+        let webscene = null;
+        let currentSceneId = null;
+
+        // Elementy UI
+        const splashScreen = document.getElementById('splashScreen');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessageElement = document.getElementById('errorMessage');
+        const appContainer = document.getElementById('appContainer');
+        const sceneIdInput = document.getElementById('sceneIdInput');
+        const loadSceneButton = document.getElementById('loadSceneButton');
+        const backToSplashButton = document.getElementById('backToSplashButton');
+        const sampleButtonsContainer = document.querySelector('.sample-buttons');
+
+        // UI funkce
+        function showSplashScreen() { 
+            splashScreen.style.display = 'flex'; 
+            splashScreen.classList.remove('hidden'); 
+            appContainer.classList.remove('visible'); 
+            loadingIndicator.style.display = 'none'; 
+            errorContainer.style.display = 'none'; 
+            sceneIdInput.value = localStorage.getItem('lastSceneId') || ''; 
+        }
+        
+        function showLoadingIndicator() { 
+            loadingIndicator.style.display = 'flex'; 
+            splashScreen.classList.add('hidden'); 
+            splashScreen.style.display = 'none'; 
+            appContainer.classList.remove('visible'); 
+            errorContainer.style.display = 'none'; 
+        }
+        
+        function showAppContainer() { 
+            appContainer.classList.add('visible'); 
+            loadingIndicator.style.display = 'none'; 
+            splashScreen.classList.add('hidden'); 
+            splashScreen.style.display = 'none'; 
+            errorContainer.style.display = 'none'; 
+        }
+        
+        function showError(message) { 
+            errorContainer.style.display = 'flex'; 
+            errorMessageElement.textContent = message; 
+            loadingIndicator.style.display = 'none'; 
+            splashScreen.classList.add('hidden'); 
+            splashScreen.style.display = 'none'; 
+            appContainer.classList.remove('visible'); 
+        }
+
+        // Notifikační systém
+        function showNotification(message, type = "info") {
+            const notification = document.createElement("div");
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <calcite-icon icon="${type === 'success' ? 'check' : type === 'error' ? 'x' : 'information'}" scale="s"></calcite-icon>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Animace
+            setTimeout(() => notification.classList.add("show"), 100);
+            setTimeout(() => {
+                notification.classList.remove("show");
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Inicializace aplikace
+        function initializeApp(sceneId) {
+            currentSceneId = sceneId;
+            showLoadingIndicator();
+            localStorage.setItem('lastSceneId', sceneId);
+
+            if (view) { 
+                view.destroy(); 
+                view = null; 
+            }
+            const sceneViewNode = document.getElementById('sceneview');
+            if (sceneViewNode) { 
+                sceneViewNode.innerHTML = ''; 
+            }
+
+            require([
+                "esri/WebScene", 
+                "esri/views/SceneView", 
+                "esri/core/reactiveUtils",
+                "esri/Camera", 
+                "esri/analysis/ViewshedAnalysis", 
+                "esri/analysis/Viewshed",
+                "esri/geometry/SpatialReference", 
+                "esri/geometry/Point", 
+                "esri/core/promiseUtils",
+                "esri/analysis/DirectLineMeasurementAnalysis", 
+                "esri/widgets/DirectLineMeasurement3D",
+                "esri/widgets/ElevationProfile", 
+                "esri/widgets/Zoom", 
+                "esri/widgets/Compass",
+                "esri/widgets/NavigationToggle", 
+                "esri/widgets/ScaleBar", 
+                "esri/widgets/Home",
+                "esri/widgets/Expand", 
+                "esri/widgets/LayerList", 
+                "esri/widgets/AreaMeasurement3D",
+                "esri/widgets/Search", 
+                "esri/widgets/Legend",
+                // NOVÉ MODULY PRO POLYGONY A 3D OBJEKTY
+                "esri/Graphic",
+                "esri/geometry/Polygon",
+                "esri/geometry/Polyline",
+                "esri/symbols/SimpleFillSymbol",
+                "esri/symbols/SimpleLineSymbol",
+                "esri/symbols/TextSymbol",
+                "esri/symbols/PointSymbol3D",
+                "esri/symbols/ObjectSymbol3DLayer",
+                "esri/layers/GraphicsLayer",
+                "esri/widgets/Sketch",
+                "esri/Color",
+                "esri/geometry/support/webMercatorUtils"
+            ], (
+                WebScene, SceneView, reactiveUtils,
+                Camera, ViewshedAnalysis, Viewshed, SpatialReference, Point, promiseUtils,
+                DirectLineMeasurementAnalysis, DirectLineMeasurement3D,
+                ElevationProfile, Zoom, Compass, NavigationToggle, ScaleBar, Home, Expand,
+                LayerList, AreaMeasurement3D, Search, Legend,
+                // NOVÉ PROMĚNNÉ
+                Graphic, Polygon, Polyline, SimpleFillSymbol, SimpleLineSymbol, TextSymbol,
+                PointSymbol3D, ObjectSymbol3DLayer, GraphicsLayer, Sketch, Color, webMercatorUtils
+            ) => {
+                webscene = new WebScene({ portalItem: { id: sceneId } });
+                view = new SceneView({
+                    container: "sceneview", 
+                    map: webscene,
+                    ui: { 
+                        components: [], 
+                        padding: { top: 10, right: 10, bottom: 10, left: 10 } 
+                    }
+                });
+
+                let isPreviewExpanded = false, 
+                    abortController = null, 
+                    viewshedAnalysis = null, 
+                    analysisView = null, 
+                    previewView = null, 
+                    previewPropertyHandle = null; 
+
+                // Vytvoříme graphics layers pro naše objekty
+                const zonesLayer = new GraphicsLayer({ title: "Zóny a oblasti" });
+                const conesLayer = new GraphicsLayer({ title: "3D objekty" });
+                webscene.layers.addMany([zonesLayer, conesLayer]);
+
+                view.when(async () => {
+                    // SKUPINA 1: ZÁKLADNÍ NAVIGACE (střed nahoře)
+                    const zoom = new Zoom({ view: view });
+                    const compass = new Compass({ view: view });
+                    const navigationToggle = new NavigationToggle({ view: view });
+                    const home = new Home({ view: view });
+                    view.ui.add([home, zoom, compass, navigationToggle], "top-center");
+
+                    // SKUPINA 2: MĚŘICÍ NÁSTROJE (vlevo nahoře)
+                    const elevationProfile = new ElevationProfile({ 
+                        view: view, 
+                        profiles: [{ type: "view", title: "Objekty" }], 
+                        visibleElements: { selectButton: false, sketchButton: true, settingsButton: true } 
+                    });
+                    const profileExpand = new Expand({ 
+                        view: view, 
+                        content: elevationProfile, 
+                        expandIcon: "altitude",
+                        expandTooltip: "Výškový profil"
+                    });
+                    
+                    const directLineMeasurementAnalysis = new DirectLineMeasurementAnalysis({});
+                    view.analyses.add(directLineMeasurementAnalysis);
+                    const measurementTool = new DirectLineMeasurement3D({ 
+                        view: view, 
+                        analysis: directLineMeasurementAnalysis 
+                    });
+                    const measurementExpand = new Expand({ 
+                        view: view, 
+                        content: measurementTool, 
+                        expandIcon: "measure-line",
+                        expandTooltip: "Měření vzdálenosti"
+                    });
+                    
+                    const areaMeasurement3D = new AreaMeasurement3D({ view: view, unit: "square-meters" });
+                    const areaMeasurementExpand = new Expand({ 
+                        view: view, 
+                        content: areaMeasurement3D, 
+                        expandIcon: "measure-area",
+                        expandTooltip: "Plošné měření"
+                    });
+
+                    // SCREENSHOT WIDGET (vlevo nahoře)
+                    const screenshotButtonWrapper = document.createElement("div");
+                    screenshotButtonWrapper.className = "esri-widget esri-component esri-expand";
+                    screenshotButtonWrapper.title = "Vytvořit snímek obrazovky";
+                    
+                    const screenshotHeader = document.createElement("div");
+                    screenshotHeader.className = "esri-expand__header";
+                    screenshotButtonWrapper.appendChild(screenshotHeader);
+                    
+                    const screenshotActualButton = document.createElement("button");
+                    screenshotActualButton.className = "esri-widget--button esri-expand__button";
+                    screenshotActualButton.type = "button";
+                    screenshotHeader.appendChild(screenshotActualButton);
+                    
+                    const screenshotButtonIcon = document.createElement("span");
+                    screenshotButtonIcon.className = "esri-icon esri-icon-media";
+                    screenshotButtonIcon.setAttribute("aria-hidden", "true");
+                    screenshotActualButton.appendChild(screenshotButtonIcon);
+                    
+                    screenshotActualButton.addEventListener("click", () => {
+                        if (!view) return;
+                        view.takeScreenshot({ format: "png", quality: 100 })
+                        .then((screenshot) => {
+                            const link = document.createElement("a");
+                            link.href = screenshot.dataUrl;
+                            link.download = `SafetySphere_screenshot_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.png`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            showNotification("Snímek byl uložen", "success");
+                        })
+                        .catch((error) => {
+                            console.error("Chyba při vytváření screenshotu:", error);
+                            showNotification("Nepodařilo se vytvořit snímek obrazovky", "error");
+                        });
+                    });
+
+                    // NÁSTROJ PRO ZÓNY A OBLASTI - VYLEPŠENÁ VERZE S VERTIKÁLNÍMI POPISKY
+                    function createZoneTool() {
+                        const zoneContainer = document.createElement("div");
+                        zoneContainer.innerHTML = `
+                            <div style="padding: 12px; min-width: 280px;">
+                                <h3 style="margin-top: 0; margin-bottom: 15px;">Zóny a oblasti</h3>
+                                
+                                <calcite-label>
+                                    Název zóny
+                                    <calcite-input id="zoneNameInput" placeholder="Např: Zakázaná zóna"></calcite-input>
+                                </calcite-label>
+                                
+                                <calcite-label>
+                                    Barva zóny
+                                    <calcite-input type="color" id="zoneColorInput" value="#ff0000"></calcite-input>
+                                </calcite-label>
+                                
+                                <calcite-label>
+                                    Průhlednost
+                                    <calcite-slider id="zoneOpacitySlider" min="0" max="100" value="50"></calcite-slider>
+                                </calcite-label>
+                                
+                                <div style="display: flex; gap: 8px; margin-top: 15px;">
+                                    <calcite-button id="startDrawZone" width="full" scale="s">Kreslit zónu</calcite-button>
+                                    <calcite-button id="clearZones" appearance="outline" scale="s" icon="trash">Smazat vše</calcite-button>
+                                </div>
+                                
+                                <div id="zonesList" class="zones-list"></div>
+                            </div>
+                        `;
+
+                        let sketchViewModel = null;
+                        let currentZoneColor = "#ff0000";
+                        let currentZoneOpacity = 0.5;
+
+                        // Inicializace sketch toolu
+                        sketchViewModel = new Sketch({
+                            view: view,
+                            layer: zonesLayer,
+                            creationMode: "update"
+                        });
+
+                        // Funkce pro nastavení event listenerů
+                        function setupZoneEventListeners() {
+                            const zoneNameInput = zoneContainer.querySelector("#zoneNameInput");
+                            const zoneColorInput = zoneContainer.querySelector("#zoneColorInput");
+                            const zoneOpacitySlider = zoneContainer.querySelector("#zoneOpacitySlider");
+                            const startDrawZone = zoneContainer.querySelector("#startDrawZone");
+                            const clearZones = zoneContainer.querySelector("#clearZones");
+
+                            if (zoneColorInput) {
+                                zoneColorInput.addEventListener("calciteInputChange", (e) => {
+                                    currentZoneColor = e.target.value;
+                                });
+                            }
+
+                            if (zoneOpacitySlider) {
+                                zoneOpacitySlider.addEventListener("calciteSliderChange", (e) => {
+                                    currentZoneOpacity = e.target.value / 100;
+                                });
+                            }
+
+                            if (startDrawZone) {
+                                startDrawZone.addEventListener("click", () => {
+                                    const zoneName = zoneNameInput ? zoneNameInput.value : "Nepojmenovaná zóna";
+                                    
+                                    sketchViewModel.create("polygon", {
+                                        tool: "polygon",
+                                        updateOnGraphicClick: true
+                                    });
+                                    
+                                    sketchViewModel.on("create", (event) => {
+                                        if (event.state === "complete") {
+                                            const graphic = event.graphic;
+                                            setupZoneGraphic(graphic, zoneName, currentZoneColor, currentZoneOpacity);
+                                            updateZonesList();
+                                            showNotification(`Zóna "${zoneName}" byla vytvořena`, "success");
+                                        }
+                                    });
+                                });
+                            }
+
+                            if (clearZones) {
+                                clearZones.addEventListener("click", () => {
+                                    zonesLayer.removeAll();
+                                    updateZonesList();
+                                    showNotification("Všechny zóny byly smazány", "info");
+                                });
+                            }
+                        }
+
+                        function setupZoneGraphic(graphic, name, color, opacity) {
+                            // KLÍČOVÁ OPRAVA: Správný převod barvy pro ArcGIS API
+                            const hex = color.replace('#', '');
+                            const r = parseInt(hex.substring(0, 2), 16);
+                            const g = parseInt(hex.substring(2, 4), 16);
+                            const b = parseInt(hex.substring(4, 6), 16);
+                            
+                            // Vytvoření barvy s průhledností pro ArcGIS
+                            const zoneColor = new Color([r, g, b, opacity]);
+                            
+                            // Nastavení symbolu s vybranou barvou a průhledností
+                            graphic.symbol = new SimpleFillSymbol({
+                                color: zoneColor,
+                                outline: new SimpleLineSymbol({
+                                    color: new Color([0, 0, 0, 0.8]),
+                                    width: 2
+                                })
+                            });
+                            
+                            // Uložení metadat
+                            graphic.attributes = {
+                                name: name,
+                                type: "zone",
+                                color: color,
+                                opacity: opacity,
+                                created: new Date().toISOString()
+                            };
+                            
+                            // Přidání vertikálního textového popisku s vodící linkou
+                            addVerticalZoneLabel(graphic, name);
+                        }
+
+                        function addVerticalZoneLabel(graphic, text) {
+                            const polygon = graphic.geometry;
+                            const centroid = polygon.centroid;
+                            
+                            // Výška popisku nad zónou (v metrech)
+                            const labelHeight = 15;
+                            
+                            // Bod pro umístění popisku (nad centroidem)
+                            const labelPoint = new Point({
+                                x: centroid.x,
+                                y: centroid.y,
+                                z: centroid.z + labelHeight,
+                                spatialReference: centroid.spatialReference
+                            });
+                            
+                            // Vytvoření vodící linky od zóny k popisku
+                            const lineGeometry = new Polyline({
+                                paths: [
+                                    [
+                                        [centroid.x, centroid.y, centroid.z],
+                                        [labelPoint.x, labelPoint.y, labelPoint.z]
+                                    ]
+                                ],
+                                spatialReference: centroid.spatialReference
+                            });
+                            
+                            // Grafický prvek pro vodící linku
+                            const lineGraphic = new Graphic({
+                                geometry: lineGeometry,
+                                symbol: new SimpleLineSymbol({
+                                    color: new Color([0, 0, 0, 0.6]),
+                                    width: 1,
+                                    style: "dash"
+                                })
+                            });
+                            
+                            // Textový symbol pro popisek
+                            const textSymbol = new TextSymbol({
+                                text: text,
+                                color: "white",
+                                backgroundColor: new Color([0, 0, 0, 0.8]),
+                                font: { 
+                                    size: 14, 
+                                    family: "Avenir Next", 
+                                    weight: "bold" 
+                                },
+                                haloColor: "black",
+                                haloSize: 1,
+                                verticalAlignment: "middle",
+                                horizontalAlignment: "center",
+                                xoffset: 0,
+                                yoffset: 0
+                            });
+                            
+                            // Grafický prvek pro text
+                            const labelGraphic = new Graphic({
+                                geometry: labelPoint,
+                                symbol: textSymbol
+                            });
+                            
+                            // Uložení referencí na grafické prvky pro pozdější odstranění
+                            graphic.labelGraphic = labelGraphic;
+                            graphic.lineGraphic = lineGraphic;
+                            
+                            // Přidání všech grafických prvků do vrstvy
+                            zonesLayer.addMany([lineGraphic, labelGraphic]);
+                        }
+
+                        function updateZonesList() {
+                            const zonesList = zoneContainer.querySelector("#zonesList");
+                            if (!zonesList) return;
+
+                            zonesList.innerHTML = "";
+                            
+                            zonesLayer.graphics.forEach((graphic, index) => {
+                                if (graphic.attributes?.type === "zone") {
+                                    const zoneItem = document.createElement("div");
+                                    zoneItem.className = "zone-item";
+                                    zoneItem.style.borderLeftColor = graphic.attributes.color;
+                                    
+                                    zoneItem.innerHTML = `
+                                        <div>
+                                            <strong>${graphic.attributes.name}</strong>
+                                            <div class="details">
+                                                ${new Date(graphic.attributes.created).toLocaleString()}
+                                            </div>
+                                        </div>
+                                        <calcite-button scale="s" icon="x" appearance="transparent" data-index="${index}"></calcite-button>
+                                    `;
+                                    
+                                    zonesList.appendChild(zoneItem);
+                                }
+                            });
+                            
+                            // Event listener pro mazání jednotlivých zón
+                            zonesList.querySelectorAll("calcite-button").forEach(btn => {
+                                btn.addEventListener("click", (e) => {
+                                    const index = parseInt(e.target.closest("calcite-button").dataset.index);
+                                    const graphic = zonesLayer.graphics.getItemAt(index);
+                                    
+                                    // Smazání hlavního graphic, labelu a vodící linky
+                                    if (graphic.labelGraphic) {
+                                        zonesLayer.remove(graphic.labelGraphic);
+                                    }
+                                    if (graphic.lineGraphic) {
+                                        zonesLayer.remove(graphic.lineGraphic);
+                                    }
+                                    zonesLayer.remove(graphic);
+                                    
+                                    updateZonesList();
+                                    showNotification("Zóna byla smazána", "info");
+                                });
+                            });
+                        }
+
+                        // Inicializace event listenerů
+                        setTimeout(setupZoneEventListeners, 100);
+                        // Inicializace seznamu zón
+                        setTimeout(updateZonesList, 200);
+
+                        return zoneContainer;
+                    }
+
+                    // NÁSTROJ PRO 3D CYLINDERY - OPRAVENÁ VERZE
+                    function createConeTool() {
+                        const coneContainer = document.createElement("div");
+                        coneContainer.innerHTML = `
+                            <div style="padding: 12px; min-width: 280px;">
+                                <h3 style="margin-top: 0; margin-bottom: 15px;">3D objekty</h3>
+                                
+                                <calcite-label>
+                                    Název objektu
+                                    <calcite-input id="coneNameInput" placeholder="Např: Místo úniku"></calcite-input>
+                                </calcite-label>
+                                
+                                <calcite-label>
+                                    Barva válce
+                                    <calcite-input type="color" id="coneColorInput" value="#ff0000"></calcite-input>
+                                </calcite-label>
+                                
+                                <calcite-label>
+                                    Průhlednost
+                                    <calcite-slider id="coneOpacitySlider" min="0" max="100" value="30"></calcite-slider>
+                                </calcite-label>
+                                
+                                <calcite-label>
+                                    Výška (m)
+                                    <calcite-input id="coneHeightInput" type="number" value="5" min="1"></calcite-input>
+                                </calcite-label>
+                                
+                                <calcite-label>
+                                    Poloměr (m)
+                                    <calcite-input id="coneRadiusInput" type="number" value="5" min="1"></calcite-input>
+                                </calcite-label>
+                                
+                                <div style="display: flex; gap: 8px; margin-top: 15px;">
+                                    <calcite-button id="placeCone" width="full" scale="s">Umístit válec</calcite-button>
+                                    <calcite-button id="clearCones" appearance="outline" scale="s" icon="trash">Smazat vše</calcite-button>
+                                </div>
+                                
+                                <div id="conesList" class="cones-list"></div>
+                            </div>
+                        `;
+
+                        let placingCone = false;
+                        let currentConeColor = "#ff0000";
+                        let currentConeOpacity = 0.7; // 30% průhlednost = 0.7 opacity
+                        let clickHandler = null;
+                        let escapeHandler = null;
+
+                        function setupConeEventListeners() {
+                            const coneNameInput = coneContainer.querySelector("#coneNameInput");
+                            const coneColorInput = coneContainer.querySelector("#coneColorInput");
+                            const coneOpacitySlider = coneContainer.querySelector("#coneOpacitySlider");
+                            const coneHeightInput = coneContainer.querySelector("#coneHeightInput");
+                            const coneRadiusInput = coneContainer.querySelector("#coneRadiusInput");
+                            const placeCone = coneContainer.querySelector("#placeCone");
+                            const clearCones = coneContainer.querySelector("#clearCones");
+
+                            // Inicializace hodnot
+                            if (coneColorInput) {
+                                coneColorInput.value = "#ff0000";
+                                coneColorInput.addEventListener("calciteInputChange", (e) => {
+                                    currentConeColor = e.target.value;
+                                });
+                            }
+
+                            if (coneOpacitySlider) {
+                                coneOpacitySlider.value = 30;
+                                coneOpacitySlider.addEventListener("calciteSliderChange", (e) => {
+                                    currentConeOpacity = 1 - (e.target.value / 100); // Převod na opacity (1 = neprůhledný)
+                                });
+                            }
+
+                            if (placeCone) {
+                                placeCone.addEventListener("click", () => {
+                                    if (!placingCone) {
+                                        placingCone = true;
+                                        placeCone.textContent = "Klikněte do scény";
+                                        // Přidáme event listener pro kliknutí do scény
+                                        clickHandler = view.on("click", placeConeHandler);
+                                        // Umožníme zrušení režimu pomocí klávesy Escape
+                                        escapeHandler = (e) => {
+                                            if (e.key === "Escape") {
+                                                cancelConePlacement();
+                                            }
+                                        };
+                                        document.addEventListener("keydown", escapeHandler);
+                                    }
+                                });
+                            }
+
+                            if (clearCones) {
+                                clearCones.addEventListener("click", () => {
+                                    conesLayer.removeAll();
+                                    updateConesList();
+                                    showNotification("Všechny válce byly smazány", "info");
+                                });
+                            }
+
+                            function placeConeHandler(event) {
+                                const name = coneNameInput ? coneNameInput.value : "Nepojmenovaný objekt";
+                                const height = coneHeightInput ? parseFloat(coneHeightInput.value) || 5 : 5;
+                                const radius = coneRadiusInput ? parseFloat(coneRadiusInput.value) || 5 : 5;
+                                
+                                createConeAtLocation(event.mapPoint, name, currentConeColor, currentConeOpacity, height, radius);
+                                cancelConePlacement();
+                            }
+
+                            function cancelConePlacement() {
+                                placingCone = false;
+                                const placeCone = coneContainer.querySelector("#placeCone");
+                                if (placeCone) {
+                                    placeCone.textContent = "Umístit válec";
+                                }
+                                if (clickHandler) {
+                                    clickHandler.remove();
+                                }
+                                if (escapeHandler) {
+                                    document.removeEventListener("keydown", escapeHandler);
+                                }
+                                // Obnovíme focus na scénu pro navigaci
+                                view.focus();
+                            }
+                        }
+
+                        function createConeAtLocation(point, name, color, opacity, height, radius) {
+                            // KLÍČOVÁ OPRAVA: Správný převod barvy pro ArcGIS API
+                            const hex = color.replace('#', '');
+                            const r = parseInt(hex.substring(0, 2), 16);
+                            const g = parseInt(hex.substring(2, 4), 16);
+                            const b = parseInt(hex.substring(4, 6), 16);
+                            
+                            // Vytvoření barvy s průhledností pro ArcGIS
+                            const arcgisColor = new Color([r, g, b, opacity]);
+                            
+                            const coneGraphic = new Graphic({
+                                geometry: point,
+                                symbol: new PointSymbol3D({
+                                    symbolLayers: [new ObjectSymbol3DLayer({
+                                        resource: { primitive: "cylinder" },
+                                        material: {
+                                            color: arcgisColor
+                                        },
+                                        height: height,
+                                        width: radius * 2,
+                                        depth: radius * 2,
+                                        anchor: "bottom"
+                                    })]
+                                }),
+                                attributes: {
+                                    name: name,
+                                    type: "cone",
+                                    color: color,
+                                    opacity: opacity,
+                                    height: height,
+                                    radius: radius,
+                                    created: new Date().toISOString()
+                                },
+                                popupTemplate: {
+                                    title: "{name}",
+                                    content: `
+                                        <div>
+                                            <p><strong>Typ:</strong> 3D válec</p>
+                                            <p><strong>Výška:</strong> {height} m</p>
+                                            <p><strong>Poloměr:</strong> {radius} m</p>
+                                            <p><strong>Průhlednost:</strong> ${Math.round((1 - opacity) * 100)}%</p>
+                                            <p><strong>Vytvořeno:</strong> {created}</p>
+                                        </div>
+                                    `
+                                }
+                            });
+                            
+                            conesLayer.add(coneGraphic);
+                            updateConesList();
+                            showNotification(`Válec "${name}" byl umístěn`, "success");
+                        }
+
+                        function updateConesList() {
+                            const conesList = coneContainer.querySelector("#conesList");
+                            if (!conesList) return;
+
+                            conesList.innerHTML = "";
+                            
+                            conesLayer.graphics.forEach((graphic, index) => {
+                                if (graphic.attributes?.type === "cone") {
+                                    const coneItem = document.createElement("div");
+                                    coneItem.className = "cone-item";
+                                    coneItem.style.borderLeftColor = graphic.attributes.color;
+                                    
+                                    coneItem.innerHTML = `
+                                        <div>
+                                            <strong>${graphic.attributes.name}</strong>
+                                            <div class="details">
+                                                Výška: ${graphic.attributes.height}m, Poloměr: ${graphic.attributes.radius}m
+                                            </div>
+                                        </div>
+                                        <calcite-button scale="s" icon="x" appearance="transparent" data-index="${index}"></calcite-button>
+                                    `;
+                                    
+                                    conesList.appendChild(coneItem);
+                                }
+                            });
+                            
+                            // Event listener pro mazání jednotlivých válců
+                            conesList.querySelectorAll("calcite-button").forEach(btn => {
+                                btn.addEventListener("click", (e) => {
+                                    const index = parseInt(e.target.closest("calcite-button").dataset.index);
+                                    conesLayer.remove(conesLayer.graphics.getItemAt(index));
+                                    updateConesList();
+                                    showNotification("Válec byl smazán", "info");
+                                });
+                            });
+                        }
+
+                        // Inicializace event listenerů
+                        setTimeout(setupConeEventListeners, 100);
+                        // Inicializace seznamu válců
+                        setTimeout(updateConesList, 200);
+
+                        return coneContainer;
+                    }
+
+                    // Vytvoření nástrojů pro zóny a válce
+                    const zoneTool = createZoneTool();
+                    const zoneExpand = new Expand({
+                        view: view,
+                        content: zoneTool,
+                        expandIcon: "polygon",
+                        expandTooltip: "Zóny a oblasti"
+                    });
+
+                    const coneTool = createConeTool();
+                    const coneExpand = new Expand({
+                        view: view,
+                        content: coneTool,
+                        expandIcon: "circle",
+                        expandTooltip: "3D objekty"
+                    });
+
+                    // SKUPINA 3: VYHLEDÁVÁNÍ A LEGENDA (vlevo dole)
+                    const searchWidget = new Search({ 
+                        view: view,
+                        popupEnabled: true,
+                        includeDefaultSources: false,
+                        sources: [{
+                            locator: { url: "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer" },
+                            singleLineFieldName: "SingleLine",
+                            name: "Geocoder",
+                            placeholder: "Zadejte adresu nebo místo"
+                        }]
+                    });
+                    
+                    const searchExpand = new Expand({
+                        view: view,
+                        content: searchWidget,
+                        expandIcon: "search",
+                        expandTooltip: "Vyhledávání"
+                    });
+
+                    const legend = new Legend({ view: view });
+                    const legendExpand = new Expand({
+                        view: view,
+                        content: legend,
+                        expandIcon: "legend",
+                        expandTooltip: "Legenda"
+                    });
+
+                    // SKUPINA 4: VRSTVY (vlevo dole)
+                    const layerList = new LayerList({ view: view });
+                    const layerListExpand = new Expand({
+                        view: view,
+                        content: layerList,
+                        expandIcon: "layers",
+                        expandTooltip: "Seznam vrstev"
+                    });
+
+                    // ROZMÍSTĚNÍ WIDGETŮ DO UI
+                    // Levý horní roh: Měřicí nástroje + screenshot + zóny + válce
+                    view.ui.add([
+                        profileExpand,
+                        measurementExpand, 
+                        areaMeasurementExpand,
+                        zoneExpand,
+                        coneExpand,
+                        screenshotButtonWrapper
+                    ], "top-left");
+
+                    // Levý dolní roh: Vyhledávání, vrstvy, legenda
+                    view.ui.add([
+                        searchExpand,
+                        layerListExpand,
+                        legendExpand
+                    ], "bottom-left");
+
+                    // Scale bar (ručně umístěný)
+                    const scaleBar = new ScaleBar({ view: view, unit: "metric", container: document.createElement("div") });
+                    scaleBar.container.classList.add("scale-bar-bottom-left");
+                    view.ui.add(scaleBar, "manual");
+
+                    // VIEWSHED ANALÝZA
+                    viewshedAnalysis = new ViewshedAnalysis(); 
+                    view.analyses.add(viewshedAnalysis);
+                    analysisView = await view.whenAnalysisView(viewshedAnalysis);
+                    analysisView.interactive = true;
+                    analysisView.selectedViewshed = null; 
+
+                    const createButton = document.getElementById("createButton"),
+                          cancelButton = document.getElementById("cancelButton"),
+                          promptText = document.getElementById('promptText'),
+                          manualInputsDiv = document.querySelector('.manual-inputs'),
+                          applySettingsButton = document.getElementById('applySettings'),
+                          previewControlsDiv = document.getElementById('previewControls');
+                    const farDistInput = document.getElementById('farDistanceInput'),
+                          hfovInput = document.getElementById('horizontalFOVInput'),
+                          vfovInput = document.getElementById('verticalFOVInput'); 
+
+                    function updateUIState(){
+                        const isCreating = !!abortController;
+                        const isSelected = !!analysisView?.selectedViewshed;
+                        createButton.style.display = isCreating ? "none" : "flex";
+                        cancelButton.style.display = isCreating ? "flex" : "none";
+                        promptText.style.display = isCreating ? "block" : "none";
+                        const showControls = isSelected && !isCreating;
+                        manualInputsDiv.style.display = showControls ? "flex" : "none";
+                        previewControlsDiv.style.display = showControls ? "block" : "none";
+                    }
+
+                    createButton.addEventListener("click", () => {
+                        if (abortController) abortController.abort();
+                        abortController = new AbortController();
+                        updateUIState();
+                        analysisView.createViewsheds({ signal: abortController.signal })
+                            .then(() => { 
+                                if (viewshedAnalysis.viewsheds.length > 0) {
+                                    analysisView.selectedViewshed = viewshedAnalysis.viewsheds.getItemAt(0);
+                                }
+                            })
+                            .catch(e => {
+                                if (!promiseUtils.isAbortError(e)) {
+                                    console.error("Viewshed creation failed:", e);
+                                    showNotification("Chyba při vytváření viewshed", "error");
+                                }
+                             })
+                            .finally(() => {
+                                abortController = null;
+                                updateUIState();
+                            });
+                    });
+                    
+                    cancelButton.addEventListener("click", () => { 
+                        abortController?.abort(); 
+                        abortController = null; 
+                        updateUIState(); 
+                    });
+                    
+                    view.on("key-down", e => { 
+                        if (e.key === "Escape" && abortController) { 
+                            abortController.abort(); 
+                            abortController = null; 
+                            updateUIState(); 
+                        } 
+                    });
+
+                    reactiveUtils.watch(() => analysisView?.selectedViewshed, selectedViewshed => {
+                         updateUIState();
+                         if (selectedViewshed) {
+                             farDistInput.value = selectedViewshed.farDistance.toFixed(2);
+                             hfovInput.value = selectedViewshed.horizontalFieldOfView;
+                             vfovInput.value = selectedViewshed.verticalFieldOfView;
+                         }
+                     }, { initial: true });
+
+                    applySettingsButton.addEventListener('click', () => {
+                        const selected = analysisView?.selectedViewshed;
+                        if (selected) {
+                            try {
+                                const farDist = Math.max(1, Number(farDistInput.value) || selected.farDistance);
+                                const hfov = Math.min(360, Math.max(1, Number(hfovInput.value) || selected.horizontalFieldOfView));
+                                const vfov = Math.min(360, Math.max(1, Number(vfovInput.value) || selected.verticalFieldOfView));
+                                selected.farDistance = farDist;
+                                selected.horizontalFieldOfView = hfov;
+                                selected.verticalFieldOfView = vfov;
+                                farDistInput.value = farDist;
+                                hfovInput.value = hfov;
+                                vfovInput.value = vfov;
+                                showNotification("Nastavení viewshed aplikováno", "success");
+                             } catch (err) { 
+                                 console.error("Error applying viewshed settings:", err);
+                                 showNotification("Chyba při aplikování nastavení", "error");
+                             }
+                        }
+                    });
+                    updateUIState(); 
+
+                    // PREVIEW funkcionalita
+                    const previewContainer = document.getElementById("previewContainer");
+                    const previewDiv = document.createElement("div"); 
+                    previewDiv.style.width = "100%";
+                    previewDiv.style.height = "100%";
+                    previewContainer.innerHTML = '';
+                    previewContainer.appendChild(previewDiv);
+
+                     if (previewView) {
+                         previewView.destroy();
+                         previewView = null;
+                     }
+                    if (previewPropertyHandle) {
+                        previewPropertyHandle.remove();
+                        previewPropertyHandle = null;
+                    }
+
+                    previewView = new SceneView({
+                         container: previewDiv,
+                         map: view.map, 
+                         ui: { components: [] },
+                         environment: view.environment.clone(),
+                         camera: new Camera() 
+                    });
+
+                    const updatePreviewCamera = (selectedViewshed) => {
+                        if (!previewView?.ready || !selectedViewshed) {
+                            previewContainer.style.display = "none";
+                            return;
+                        }
+                        const { observer, heading, tilt, horizontalFieldOfView } = selectedViewshed;
+                        if (observer && isFinite(heading) && isFinite(tilt) && isFinite(horizontalFieldOfView) && horizontalFieldOfView > 0) {
+                             try {
+                                 previewView.camera = new Camera({
+                                     position: observer,
+                                     heading: heading,
+                                     tilt: tilt,
+                                     fov: horizontalFieldOfView 
+                                 });
+                                 previewContainer.style.display = "block"; 
+                             } catch (err) {
+                                 console.error("Error setting preview camera:", err);
+                                 previewContainer.style.display = "none";
+                             }
+                         } else {
+                             previewContainer.style.display = "none";
+                         }
+                     };
+
+                     previewPropertyHandle = reactiveUtils.watch(
+                         () => analysisView?.selectedViewshed,
+                         (selectedViewshed) => {
+                             if (view.internalProperties && view.internalProperties._nestedPreviewWatcher) {
+                                 view.internalProperties._nestedPreviewWatcher.remove();
+                                 view.internalProperties._nestedPreviewWatcher = null;
+                             }
+
+                             if (selectedViewshed) {
+                                 if (!view.internalProperties) view.internalProperties = {};
+                                 view.internalProperties._nestedPreviewWatcher = reactiveUtils.watch(
+                                     () => [selectedViewshed.observer, selectedViewshed.heading, selectedViewshed.tilt, selectedViewshed.horizontalFieldOfView, selectedViewshed.verticalFieldOfView],
+                                     () => updatePreviewCamera(selectedViewshed),
+                                     { initial: true } 
+                                 );
+                             } else {
+                                 updatePreviewCamera(null); 
+                             }
+                         },
+                         { initial: true } 
+                     );
+
+                     try {
+                         await previewView.when();
+                         updatePreviewCamera(analysisView?.selectedViewshed);
+                     } catch (err) {
+                         console.error("Preview view failed to load:", err);
+                         previewContainer.style.display = "none";
+                     }
+
+                     const expandPreviewButton = document.getElementById("expandPreviewButton");
+                     isPreviewExpanded = false;
+                     previewContainer.classList.remove("expanded");
+                     previewContainer.style.pointerEvents = "none";
+                     expandPreviewButton.textContent = "Zvětšit náhled";
+                     expandPreviewButton.onclick = () => { 
+                        isPreviewExpanded = !isPreviewExpanded;
+                        previewContainer.classList.toggle("expanded", isPreviewExpanded);
+                        previewContainer.style.pointerEvents = isPreviewExpanded ? "auto" : "none";
+                        expandPreviewButton.textContent = isPreviewExpanded ? "Zmenšit náhled" : "Zvětšit náhled";
+                     };
+
+                    showAppContainer();
+                    showNotification("Aplikace byla úspěšně načtena", "success");
+
+                }).catch(err => {
+                    console.error("Chyba při inicializaci SceneView nebo widgetů:", err);
+                    const userMessage = `Nepodařilo se plně inicializovat 3D scénu: ${err.message || err}`;
+                    showError(userMessage);
+                     if (view) { 
+                        if (view.internalProperties && view.internalProperties._nestedPreviewWatcher) {
+                            view.internalProperties._nestedPreviewWatcher.remove();
+                        }
+                        view.destroy(); 
+                        view = null; 
+                     }
+                });
+
+            }).catch(loadErr => {
+                 console.error("Chyba při načítání modulů nebo WebScene:", loadErr);
+                 const userMessage = `Nepodařilo se načíst scénu: ${loadErr.message || loadErr}`;
+                 showError(userMessage);
+                 if (view) { 
+                     view.destroy(); 
+                     view = null; 
+                 }
+            });
+        } 
+
+        // Event listenery
+        loadSceneButton.addEventListener('click', () => { 
+            const sceneId = sceneIdInput.value.trim(); 
+            if (sceneId) {
+                initializeApp(sceneId); 
+            } else {
+                sceneIdInput.setFocus().catch(e => console.warn(e)); 
+            }
+        });
+        
+        sceneIdInput.addEventListener('keydown', (event) => { 
+            if (event.key === 'Enter') {
+                loadSceneButton.click(); 
+            }
+        });
+        
+        sampleButtonsContainer.addEventListener('click', (event) => { 
+            const button = event.target.closest('calcite-button'); 
+            if (button && button.dataset.sceneId) { 
+                sceneIdInput.value = button.dataset.sceneId; 
+                initializeApp(button.dataset.sceneId); 
+            } 
+        });
+        
+        backToSplashButton.addEventListener('click', showSplashScreen);
+        
+        // Načtení aplikace
+        showSplashScreen();
+
+    </script>
+</body>
+</html>
