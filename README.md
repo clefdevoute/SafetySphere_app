@@ -18,7 +18,7 @@ Na základě analýzy kódu verze 2.5 a porovnáním s aktuální funkcionalitou
 ---
 
 # SafetySphere_app v3.0
-**Datum poslední aktualizace:** [Datum aktuální verze]
+**Datum poslední aktualizace:** [11.2025]
 
 **Autor:** Oto Weber (clefdevout@gmail.com)
 
@@ -125,11 +125,11 @@ Integration with additional data and visualizations for improved situational awa
 
 Plný text diplomové práce "Tvorba digitálního dvojčete průmyslového areálu s využitím bezkontaktních metod sběru prostorových dat jako základ pro prostorové analýzy a simulace krizových situací", která popisuje celý výzkum včetně metodiky sběru dat, zpracování, fúze a podrobných analýz:
 
-[Odkaz na diplomovou práci - po publikaci]
+[https://www.researchgate.net/profile/Oto-Weber?ev=hdr_xprf]
 
 The full text of the diploma thesis, "Creation of a digital twin of an industrial area using non-contact methods of spatial data collection as a basis for spatial analyses and simulations of crisis situations," describing the entire research including data acquisition methodology, processing, fusion, and detailed analyses:
 
-[Link to diploma thesis - after publication]
+[https://www.researchgate.net/profile/Oto-Weber?ev=hdr_xprf]
 
 ## Poděkování (Acknowledgments)
 
