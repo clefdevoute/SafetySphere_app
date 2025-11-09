@@ -138,6 +138,39 @@ I would like to thank my supervisor doc. Ing. Jan Pacina, Ph.D. for his valuable
 
 ## Licence (License)
 
-📄 License: AGPL-3.0  
-Users are free to use, modify, and distribute the code under the same license terms.
-Commercial use is only allowed if the complete source code of any derivative work is made publicly available.
+Copyright (c) 2025 Oto Weber
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, and distribute the Software **for non-commercial purposes only**, 
+including academic, research, personal, or educational use, subject to the following conditions:
+
+1. Commercial use of the Software, including integration into a paid service or product, 
+   is strictly prohibited without prior written permission from the author.
+2. The above copyright notice and this permission notice shall be included in all copies 
+   or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, 
+AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
+
+Copyright (c) 2025 Oto Weber
+
+Tímto se uděluje bezplatné oprávnění jakékoli osobě, která získá kopii tohoto softwaru 
+a souvisejících dokumentačních souborů (dále jen "Software"), Software používat, kopírovat, 
+upravit a šířit **pouze pro nekomerční účely**, včetně akademického, výzkumného, osobního 
+nebo vzdělávacího použití, za následujících podmínek:
+
+1. Komerční využití softwaru, včetně integrace do placené služby nebo produktu, 
+   je přísně zakázáno bez předchozího písemného souhlasu autora.
+2. Výše uvedené upozornění na copyright a toto oprávnění musí být zahrnuto ve všech 
+   kopiích nebo významných částech softwaru.
+
+SOFTWARE JE POSKYTOVÁN "TAK JAK JE", BEZ JAKÉKOLI ZÁRUKY, VYJÁDŘENÉ NEBO PŘEDPOKLÁDANÉ, 
+VČETNĚ, ALE NEOMEZENĚ NA ZÁRUKY PRODEJNOSTI, VHODNOSTI PRO URČITÝ ÚČEL A NEPORUŠENÍ PRÁV. 
+AUTOR NEPŘEBÍRÁ ŽÁDNOU ODPOVĚDNOST ZA NÁROKY, ŠKODY NEBO JINÉ POVINNOSTI, AŤ UPLÝVÁ 
+Z KONTRAKTU, TRESTNÉHO ČINU NEBO JINAK, VZTAHUJÍCÍ SE K SOFTWARE NEBO JEHO POUŽITÍ.
