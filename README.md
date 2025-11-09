@@ -138,6 +138,6 @@ I would like to thank my supervisor doc. Ing. Jan Pacina, Ph.D. for his valuable
 
 ## Licence (License)
 
-Tento projekt je zveřejněn pod [MIT License].
-
-This project is licensed under the [MIT License].
+📄 License: AGPL-3.0  
+Users are free to use, modify, and distribute the code under the same license terms.
+Commercial use is only allowed if the complete source code of any derivative work is made publicly available.
