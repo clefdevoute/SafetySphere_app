@@ -20,7 +20,7 @@
 
 **Autor:** Oto Weber (clefdevout@gmail.com)
 **LinkedIn:** (www.linkedin.com/in/oto-weber)
-**ResearchGate:** (te.net/profile/Oto-Weber">Oto Weber on ResearchGate</a>)
+**ResearchGate:** (https://www.researchgate.net/profile/Oto-Weber/research)
 **YouTube** (https://www.youtube.com/@clefdevout)
 
 **Technologie:** ArcGIS Maps SDK for JavaScript v4.x, HTML5, CSS3, Calcite Design System
