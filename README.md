@@ -138,41 +138,30 @@ Rád bych poděkoval svému vedoucímu práce doc. Ing. Janu Pacinovi, Ph.D. za 
 
 I would like to thank my supervisor doc. Ing. Jan Pacina, Ph.D. for his valuable guidance and support throughout the project. I also thank the Esri developers and community for providing the tools and resources upon which this application was built.
 
+
 ## Licence (License)
+Copyright (c) 2025 Oto Weber
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to use, copy, modify, and distribute the Software for non-commercial purposes only, including academic, research, personal, or educational use, subject to the following conditions:
+
+Commercial use of the Software, including integration into a paid service or product, is strictly prohibited without prior written permission from the author.
+
+Declaration on the Use of Assistive Technologies (AI)
+The Software is the original copyrighted work of the author (Oto Weber). During the development of this Software, Artificial Intelligence technologies (e.g., LLM models) were utilized as a supportive tool for optimizing routine parts of the source code, debugging, and formatting. However, all system architecture, application logic, user interface design, integration with the ArcGIS platform, and specific know-how for 3D/GIS data fusion remain the exclusive intellectual creation and intellectual property of the Author. Artificial intelligence did not act as an independent creator and does not acquire any copyrights to the Software.
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Copyright (c) 2025 Oto Weber
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to use,
-copy, modify, and distribute the Software **for non-commercial purposes only**, 
-including academic, research, personal, or educational use, subject to the following conditions:
+Tímto se uděluje bezplatné oprávnění jakékoli osobě, která získá kopii tohoto softwaru a souvisejících dokumentačních souborů (dále jen "Software"), Software používat, kopírovat, upravit a šířit pouze pro nekomerční účely, včetně akademického, výzkumného, osobního nebo vzdělávacího použití, za následujících podmínek:
 
-1. Commercial use of the Software, including integration into a paid service or product, 
-   is strictly prohibited without prior written permission from the author.
-2. The above copyright notice and this permission notice shall be included in all copies 
-   or substantial portions of the Software.
+Komerční využití softwaru, včetně integrace do placené služby nebo produktu, je přísně zakázáno bez předchozího písemného souhlasu autora.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, 
-AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+Prohlášení o využití asistenčních technologií (AI)
+Software je původním autorským dílem autora (Oto Weber). Při vývoji tohoto Softwaru byly jako podpůrný nástroj využity technologie umělé inteligence (např. LLM modely) za účelem optimalizace rutinních částí zdrojového kódu, ladění (debugging) a formátování. Veškerá systémová architektura, aplikační logika, design uživatelského rozhraní, integrace s platformou ArcGIS a specifické know-how pro fúzi 3D/GIS dat jsou však výlučným duševním výtvorem a duševním vlastnictvím Autora. Umělá inteligence nepůsobila jako samostatný tvůrce a nenabývá k Softwaru žádná autorská práva.
 
----
+Výše uvedené upozornění na copyright a toto oprávnění musí být zahrnuto ve všech kopiích nebo významných částech softwaru.
 
-Copyright (c) 2025 Oto Weber
-
-Tímto se uděluje bezplatné oprávnění jakékoli osobě, která získá kopii tohoto softwaru 
-a souvisejících dokumentačních souborů (dále jen "Software"), Software používat, kopírovat, 
-upravit a šířit **pouze pro nekomerční účely**, včetně akademického, výzkumného, osobního 
-nebo vzdělávacího použití, za následujících podmínek:
-
-1. Komerční využití softwaru, včetně integrace do placené služby nebo produktu, 
-   je přísně zakázáno bez předchozího písemného souhlasu autora.
-2. Výše uvedené upozornění na copyright a toto oprávnění musí být zahrnuto ve všech 
-   kopiích nebo významných částech softwaru.
-
-SOFTWARE JE POSKYTOVÁN "TAK JAK JE", BEZ JAKÉKOLI ZÁRUKY, VYJÁDŘENÉ NEBO PŘEDPOKLÁDANÉ, 
-VČETNĚ, ALE NEOMEZENĚ NA ZÁRUKY PRODEJNOSTI, VHODNOSTI PRO URČITÝ ÚČEL A NEPORUŠENÍ PRÁV. 
-AUTOR NEPŘEBÍRÁ ŽÁDNOU ODPOVĚDNOST ZA NÁROKY, ŠKODY NEBO JINÉ POVINNOSTI, AŤ UPLÝVÁ 
-Z KONTRAKTU, TRESTNÉHO ČINU NEBO JINAK, VZTAHUJÍCÍ SE K SOFTWARE NEBO JEHO POUŽITÍ.
+SOFTWARE JE POSKYTOVÁN "TAK JAK JE", BEZ JAKÉKOLI ZÁRUKY, VYJÁDŘENÉ NEBO PŘEDPOKLÁDANÉ, VČETNĚ, ALE NEOMEZENĚ NA ZÁRUKY PRODEJNOSTI, VHODNOSTI PRO URČITÝ ÚČEL A NEPORUŠENÍ PRÁV. AUTOR NEPŘEBÍRÁ ŽÁDNOU ODPOVĚDNOST ZA NÁROKY, ŠKODY NEBO JINÉ POVINNOSTI, AŤ UPLÝVÁ Z KONTRAKTU, TRESTNÉHO ČINU NEBO JINAK, VZTAHUJÍCÍ SE K SOFTWARE NEBO JEHO POUŽITÍ.
