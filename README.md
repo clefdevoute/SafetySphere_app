@@ -33,8 +33,7 @@ Interaktivní webová aplikace vytvořená jako součást diplomové práce na U
 Aplikace slouží k vizualizaci a analýze detailního 3D digitálního dvojčete rozsáhlého průmyslového areálu ACHVL (Areál chemických výrob Lovosice). Hlavním účelem je demonstrovat praktické využití digitálního dvojčete a geoinformačních nástrojů pro podporu krizového a bezpečnostního managementu.
 
 **Webová aplikace:** ►►► [Přístup k 3D scéně ACHVL] ◄◄◄  
-*Uživatelské jméno: viewer_fzp  
-Heslo: host_1234*
+*Zaslat žádost o přístupové údaje na clefdevout@gmail.com*
 
 This interactive web application was developed as part of my diploma thesis at Jan Evangelista Purkyne University in Ústí nad Labem, Faculty of Environment, Department of Geoinformatics. Version 3.0 significantly extends the functionality with advanced tools for 3D analysis and visualization.
 
