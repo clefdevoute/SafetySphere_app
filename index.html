@@ -4923,45 +4923,74 @@
                             // Pozn.: ArcGIS Viewshed tilt: 90°=horizontálně, 0°=zenit, 180°=nadir
                             // Bug 2A: SR-aware převod dx/dy na metry před math (WGS84 → metry)
                             function isInViewshedCone(snap, queryPoint) {
-                                const obs = snap.observer;
+                                let obsX = snap.observer.x;
+                                let obsY = snap.observer.y;
+                                const obsZ = snap.observer.z || 0;
+                                let qX = queryPoint.x;
+                                let qY = queryPoint.y;
+                                const qZ = queryPoint.z || 0;
 
-                                // Bug 2A: pokud observer je v geografickém SR (stupně),
-                                // musíme dx/dy převést na metry pro korektní bearing a dist výpočet.
-                                // Z je vždy v metrech (ArcGIS absolutní výška).
+                                const _isGeo = (sr, x, y) => {
+                                    if (sr) return sr.isGeographic || sr.wkid === 4326;
+                                    return Math.abs(x) <= 180 && Math.abs(y) <= 90;
+                                };
+
+                                const obsIsGeo = _isGeo(snap.observer.spatialReference, obsX, obsY);
+                                const qPtIsGeo = _isGeo(queryPoint.spatialReference, qX, qY);
+
+                                // ZÁCHRANNÁ SYNCHRONIZACE: Pokud Excel přinesl kameru v Geo (WGS84) a mapa je WebMercator, 
+                                // odečetli bychom stupně od statisíců metrů. Sjednotíme do společného systému.
+                                let finalIsGeo = obsIsGeo;
+                                if (obsIsGeo && !qPtIsGeo) {
+                                    const wm = webMercatorUtils.lngLatToXY(obsX, obsY);
+                                    obsX = wm[0]; obsY = wm[1];
+                                    finalIsGeo = false;
+                                } else if (!obsIsGeo && qPtIsGeo) {
+                                    const wm = webMercatorUtils.lngLatToXY(qX, qY);
+                                    qX = wm[0]; qY = wm[1];
+                                    finalIsGeo = false;
+                                }
+
                                 let dx, dy;
-                                const obsIsGeo = obs.spatialReference
-                                    ? (obs.spatialReference.isGeographic || obs.spatialReference.wkid === 4326)
-                                    : (Math.abs(obs.x) <= 180 && Math.abs(obs.y) <= 90);
-                                if (obsIsGeo) {
-                                    // 1°lat ≈ 111320m, 1°lon ≈ 111320*cos(lat)m
-                                    const latRad = obs.y * Math.PI / 180;
-                                    dy = (queryPoint.y - obs.y) * 111320;
-                                    dx = (queryPoint.x - obs.x) * 111320 * Math.cos(latRad);
+                                if (finalIsGeo) {
+                                    const latRad = obsY * Math.PI / 180;
+                                    dy = (qY - obsY) * 111320;
+                                    dx = (qX - obsX) * 111320 * Math.cos(latRad);
                                 } else {
-                                    // Metrický SR (Web Mercator apod.) — přímá diferencia
-                                    dx = queryPoint.x - obs.x;
-                                    dy = queryPoint.y - obs.y;
+                                    dx = qX - obsX;
+                                    dy = qY - obsY;
                                     
-                                    // WebMercator scale factor corekce pro správné metry
-                                    const isWebMercator = obs.spatialReference && (obs.spatialReference.wkid === 102100 || obs.spatialReference.wkid === 3857);
-                                    if (isWebMercator) {
-                                        const latRad = 2 * Math.atan(Math.exp(obs.y / 6378137)) - Math.PI / 2;
+                                    // WebMercator scale factor korekce pro metrickou přesnost
+                                    let isWM = false;
+                                    if (snap.observer.spatialReference) isWM = (snap.observer.spatialReference.wkid === 102100 || snap.observer.spatialReference.wkid === 3857);
+                                    else if (queryPoint.spatialReference) isWM = (queryPoint.spatialReference.wkid === 102100 || queryPoint.spatialReference.wkid === 3857);
+                                    else isWM = (Math.abs(obsX) > 180); // Heuristika: obrovská čísla značí WebMercator
+
+                                    if (isWM) {
+                                        const latRad = 2 * Math.atan(Math.exp(obsY / 6378137)) - Math.PI / 2;
                                         const scale = Math.cos(latRad);
                                         dx *= scale;
                                         dy *= scale;
                                     }
                                 }
-                                const dz = (queryPoint.z || 0) - (obs.z || 0);
+                                const dz = qZ - obsZ;
                                 const dist2d = Math.sqrt(dx * dx + dy * dy);
-                                const dist3d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                                let dist3d = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-                                // 1. Vzdálenostní check (15 % tolerance)
+                                // Ochrana před skrytým propadem do země (0 m) z Excel importu.
+                                // Zabrání falešnému "ponoření" kamery, pokud query point leží vysoko na terénu.
+                                let effDz = dz;
+                                if (obsZ === 0 && Math.abs(qZ) > 5) {
+                                    effDz = 0; // Simulujeme, že se nachází na stejné úrovni jako surface
+                                    dist3d = dist2d; // 3D vzdálenost fallbackne na 2D mapovou
+                                }
+
+                                // 1. Vzdálenostní check (jen soft-limit pro warning)
                                 const farDist = (snap.farDistance || 200) * 1.15;
+                                let distWarning = null;
                                 if (dist3d > farDist) {
-                                    return {
-                                        inCone: false, dist: dist3d,
-                                        reason: `mimo dosah (${Math.round(dist3d)}m > ${Math.round(farDist)}m)`
-                                    };
+                                    // Neuplatňujeme "inCone: false", umožníme reálný fyzický LOS dotaz!
+                                    distWarning = `mimo optimální dosah (${Math.round(dist3d)}m > ${Math.round(farDist)}m)`;
                                 }
 
                                 // 2. Horizontální azimut check (dx/dy v metrech → správný bearing)
@@ -4975,9 +5004,9 @@
                                     };
                                 }
 
-                                // 3. Vertikální úhel check (dz/dist2d — obě v metrech → správný úhel)
+                                // 3. Vertikální úhel check (effDz/dist2d — obě v metrech → správný úhel)
                                 const camElev = (snap.tilt !== undefined ? snap.tilt : 60) - 90;
-                                const pointElev = Math.atan2(dz, dist2d) * 180 / Math.PI;
+                                const pointElev = dist2d > 0 ? Math.atan2(effDz, dist2d) * 180 / Math.PI : 0;
                                 const vHalf = (snap.verticalFieldOfView || 60) / 2 * 1.10; // 10% buf
                                 if (Math.abs(pointElev - camElev) > vHalf) {
                                     return {
@@ -4986,7 +5015,7 @@
                                     };
                                 }
 
-                                return { inCone: true, dist: dist3d };
+                                return { inCone: true, dist: dist3d, warning: distWarning };
                             }
 
                             // Bug #4: version counter — zruší letící query při rychlém opčování
@@ -5053,7 +5082,7 @@
                                 for (const item of snapshots) {
                                     const ct = isInViewshedCone(item.snap, queryPoint);
                                     if (ct.inCone) {
-                                        conePass.push({ cam: item.cam, snap: item.snap, dist: ct.dist });
+                                        conePass.push({ cam: item.cam, snap: item.snap, dist: ct.dist, warning: ct.warning });
                                     } else {
                                         results.push({ cam: item.cam, covered: false, dist: ct.dist, reason: ct.reason, losResolved: true });
                                     }
@@ -5077,9 +5106,11 @@
                                     losResults.forEach(lr => {
                                         const item = conePass.find(i => i.cam === lr.cam);
                                         const dist = item ? item.dist : 0;
+                                        const warning = item ? item.warning : null;
                                         results.push({
                                             cam: lr.cam, covered: lr.losVisible, dist,
-                                            reason: lr.losVisible ? null : "blokuje 3D mesh / budova",
+                                            reason: lr.losVisible ? null : "blokuje překážka (no LOS)",
+                                            warning: warning,
                                             losResolved: lr.losResolved
                                         });
                                         if (lr.losVisible) {
@@ -5116,10 +5147,16 @@
                                         if (r.losResolved === false && !r.covered) {
                                             li.description = `\u26A0 LOS neověřeno (timeout) \u00b7 ${Math.round(r.dist)} m`;
                                             li.style.setProperty("--calcite-ui-text-2", "var(--calcite-ui-warning)");
+                                        } else if (r.covered) {
+                                            if (r.warning) {
+                                                li.description = `\u2714 Vidí cíl, ale ${r.warning}`;
+                                                li.style.setProperty("--calcite-ui-text-2", "var(--calcite-ui-warning)");
+                                            } else {
+                                                li.description = `\u2714 Pokryt \u00b7 ${Math.round(r.dist)} m`;
+                                                li.style.setProperty("--calcite-ui-text-2", "var(--calcite-ui-success)");
+                                            }
                                         } else {
-                                            li.description = r.covered
-                                                ? `\u2714 Pokryt \u00b7 ${Math.round(r.dist)} m`
-                                                : `\u2718 ${r.reason} \u00b7 ${Math.round(r.dist)} m`;
+                                            li.description = `\u2718 ${r.reason} \u00b7 ${Math.round(r.dist)} m`;
                                         }
                                         li.dataset.covered = String(r.covered);
                                         li.dataset.camId = String(r.cam.id);
