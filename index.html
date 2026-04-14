@@ -3237,7 +3237,9 @@
                         viewshedAnalysis = null,
                         analysisView = null,
                         previewView = null,
-                        previewPropertyHandle = null;
+                        previewPropertyHandle = null,
+                        _nextCamSurfaceZ = null,     // Z mesh povrchu ze zachyceného hitTest kliknutí
+                        _nextCamSurfaceZts = 0;      // Timestamp posledního Z-capture (ms)
 
                     // Vytvoříme graphics layers pro naše objekty
                     const zonesLayer = new GraphicsLayer({ title: "Zóny a oblasti" });
@@ -4179,6 +4181,15 @@
                             // Zabráníme rušení, když aktuálně probíhá posun
                             if (pinSketchVM.state === "active") return;
 
+                            // === Z-Capture pro umístění kamery ===
+                            // MUSÍ být synchronní — event.mapPoint.z přichází z GPU depth bufferu
+                            // PŘED tím než začneme async hitTest, SDK mezitím umístí viewshed.
+                            // Toto zachytí přesný mesh-surface Z z místa kliknutí.
+                            if (abortController && _nextCamSurfaceZ === null) {
+                                _nextCamSurfaceZ = event.mapPoint?.z ?? null;
+                                _nextCamSurfaceZts = Date.now();
+                            }
+
                             const hit = await view.hitTest(event);
 
                             // 1. Zkusíme vybrat existující PIN
@@ -4318,6 +4329,7 @@
                         ], "bottom-left");
 
                         // Scale bar (ručně umístěný)
+// Scale bar (ručně umístěný)
                         const scaleBar = new ScaleBar({ view: view, unit: "metric", container: document.createElement("div") });
                         scaleBar.container.classList.add("scale-bar-bottom-left");
                         view.ui.add(scaleBar, "manual");
@@ -4337,6 +4349,18 @@
                                 evt.added.forEach(vs => {
                                     // Přidáme jen ty, které do Store ještě nejsou (např. ručně naklikané)
                                     if (!window.cameraStore.some(c => c.vs === vs)) {
+                                        // Fix: SDK přidá default eye-height offset (~1–1.65m) ke kliknuté pozici.
+                                        // Pokud máme čerstvý Z-capture z hitTest kliknutí (< 2s),
+                                        // použijeme přesné surfaceZ + 0.25m (výška montáže kamery).
+                                        // Jinak ponecháme SDK defaultní výšku (neobjektivní fallback).
+                                        if (vs.observer &&
+                                            _nextCamSurfaceZ !== null &&
+                                            Date.now() - _nextCamSurfaceZts < 2000) {
+                                            const exactPt = vs.observer.clone();
+                                            exactPt.z = _nextCamSurfaceZ + 0.25;
+                                            vs.observer = exactPt;
+                                            _nextCamSurfaceZ = null;
+                                        }
                                         const id = "CAM-" + Date.now() + Math.floor(Math.random() * 100);
                                         const cam = {
                                             id: id,
@@ -4635,7 +4659,9 @@
                                         const observer = new Point({
                                             x: x,
                                             y: y,
-                                            z: (row.z !== undefined && row.z !== "") ? Number(row.z) : 10,
+                                            // Bug 1: fallback na 0 (ArcGIS umístí na terén dle elevationInfo)
+                                            // — hardcoded 10m byl příliš vysoko nad meshem
+                                            z: (row.z !== undefined && row.z !== "") ? Number(row.z) : 0,
                                             spatialReference: spatialReference
                                         });
 
@@ -4736,85 +4762,228 @@
                                 });
                             }
 
-                            // Batch GPU LOS pro pole {cam, dist} (které prošlo kuželem) → [{cam, losVisible}]
-                            // Oprava B — watchery se instalují Až PO view.analyses.add
-                            // Oprava C — používáme whenOnce (resolvne okamžitě, pokud už visible !== null)
-                            const LOS_TIMEOUT_MS = 6000;
+                            // Sériový GPU LOS pro pole {cam, snap, dist} → [{cam, losVisible}]
+                            // Každá kamera = samostatný LineOfSightAnalysis (1 observer, 1 target).
+                            // Sériové zpracování eliminuje race-condition při batch přístupu.
+                            const LOS_TIMEOUT_MS_PER_CAM = 5000; // 5s na kameru
+
+                            // -- SR normalizace: převede Point do SR view.spatialReference --
+                            function _normToViewSR(pt) {
+                                if (!pt) return pt;
+                                const vSR = view.spatialReference;
+                                if (pt.spatialReference && pt.spatialReference.wkid === vSR.wkid) return pt;
+                                // geographic → Web Mercator
+                                if (pt.spatialReference &&
+                                    (pt.spatialReference.isGeographic || pt.spatialReference.wkid === 4326) &&
+                                    vSR.isWebMercator) {
+                                    return webMercatorUtils.geographicToWebMercator(pt);
+                                }
+                                // Web Mercator → geographic
+                                if (pt.spatialReference && pt.spatialReference.isWebMercator &&
+                                    (vSR.isGeographic || vSR.wkid === 4326)) {
+                                    return webMercatorUtils.webMercatorToGeographic(pt);
+                                }
+                                return pt;
+                            }
+
+                            // Sériová LOS analýza: jedna kamera najednou
                             async function _checkBatchMeshLOS(camsInCone, queryPoint) {
                                 const { LOS, LOSObs, LOSTarget, Collection, reactiveUtils } = await _getLOSModules();
 
-                                // Každá kamera má vlastního observera s cílovým bodem
-                                const obsData = camsInCone.map(item => {
-                                    const target   = new LOSTarget({ position: queryPoint });
-                                    const observer = new LOSObs({
-                                        position: item.snap.observer,   // používáme snapshot (neměnné hodnoty)
-                                        targets:  new Collection([target])
+                                // Normalizujeme query point do SR view JEDNOU
+                                const qPtNorm = _normToViewSR(queryPoint);
+
+                                const results = [];
+
+                                for (const item of camsInCone) {
+                                    // Normalizujeme observer do SR view
+                                    const origObsPos = _normToViewSR(item.snap.observer);
+
+                                    // FIX SOURCE CLIPPING: Kamera je často "přilepená" přímo na zdi nebo sloupu 3D fasády (fotogrammetrický mesh má bubliny a objem).
+                                    // Pokud by paprsek vyrazil přesně z tohoto bodu, okamžitě by trefil zeď/mesh a byl by falešně zablokován hned na začátku.
+                                    // Vytlačíme observer o 2 metry kupředu po vektoru směrem k cíli (virtuální předsazení objektivu do volného vzduchu).
+                                    const dxObj = qPtNorm.x - origObsPos.x;
+                                    const dyObj = qPtNorm.y - origObsPos.y;
+                                    const dzObj = (qPtNorm.z || 0) - (origObsPos.z || 0);
+                                    const distToTarget = Math.sqrt(dxObj*dxObj + dyObj*dyObj + dzObj*dzObj);
+                                    
+                                    const obsPosNorm = origObsPos.clone();
+                                    if (distToTarget > 4.0) { // Jen abychom to nepředsadili až za cíl, pokud by byl extrémně blízko
+                                        const pushFactor = 2.0 / distToTarget; 
+                                        obsPosNorm.x += dxObj * pushFactor;
+                                        obsPosNorm.y += dyObj * pushFactor;
+                                        obsPosNorm.z += dzObj * pushFactor;
+                                    }
+
+                                    // Volumetrický model cíle (pro zabránění mikroskopickým kolizím paprsku s okrajem střech atd.)
+                                    const qPtz = typeof qPtNorm.z === 'number' ? qPtNorm.z : 0;
+                                    const offsets = [
+                                        {x: 0, y: 0, z: 0},       // Paty / střed na zemi
+                                        {x: 0, y: 0, z: 2.0},     // Hlava (2m nad zemí střed)
+                                        {x: 1.0, y: 0, z: 1.0},   // Pravý okraj (+1m)
+                                        {x: -1.0, y: 0, z: 1.0},  // Levý okraj (-1m)
+                                        {x: 0, y: 1.0, z: 1.0},   // Přední okraj (+1m)
+                                        {x: 0, y: -1.0, z: 1.0}   // Zadní okraj (-1m)
+                                    ];
+
+                                    const targets = offsets.map(off => {
+                                        const pt = qPtNorm.clone();
+                                        pt.x += off.x;
+                                        pt.y += off.y;
+                                        pt.z = qPtz + off.z;
+                                        return new LOSTarget({ position: pt });
                                     });
-                                    return { cam: item.cam, observer, target };
-                                });
 
-                                const losAnalysis = new LOS({
-                                    observers: new Collection(obsData.map(d => d.observer))
-                                });
+                                    const observer = new LOSObs({ position: obsPosNorm });
+                                    const losAnalysis = new LOS({
+                                        observer: observer,
+                                        targets: targets
+                                    });
 
-                                // Oprava B: přidáme analýzu DO view.analyses a TEPŘVE instalujeme watchery
-                                view.analyses.add(losAnalysis);
+                                    // Přidáme analýzu do view — GPU začne počítat mrak paprsků
+                                    view.analyses.add(losAnalysis);
 
-                                // Čekáme max LOS_TIMEOUT_MS ms na GPU výsledek
-                                // Oprava C: whenOnce() → resolvne okamžitě pokud visible už není null
-                                try {
-                                    await Promise.race([
-                                        Promise.all(obsData.map(d =>
-                                            reactiveUtils.whenOnce(() => d.target.visible !== null)
-                                        )),
-                                        new Promise(r => setTimeout(r, LOS_TIMEOUT_MS))
-                                    ]);
-                                } catch (_) { /* timeout — čteme co máme */ }
+                                    let isVisible = false;
+                                    let isResolved = false;
 
-                                const results = obsData.map(d => ({
-                                    cam:        d.cam,
-                                    // null → timeout → benefit of the doubt = visible (nebládíý)
-                                    losVisible: d.target.visible !== false
-                                }));
+                                    try {
+                                        const analysisView = await Promise.race([
+                                            view.whenAnalysisView(losAnalysis),
+                                            new Promise((_, reject) => setTimeout(() => reject('timeout_init'), 2000))
+                                        ]);
 
-                                view.analyses.remove(losAnalysis);
+                                        // Čekáme, než AnalysisView na GPU vyhodnotí VŠECHNY průsečíky v našem mraku
+                                        await Promise.race([
+                                            reactiveUtils.whenOnce(() => {
+                                                if (!analysisView.results || analysisView.results.length < targets.length) return false;
+                                                for(let i=0; i<targets.length; i++) {
+                                                    const res = analysisView.results.getItemAt(i);
+                                                    if (!res || res.intersectedLocation === undefined) return false;
+                                                }
+                                                return true;
+                                            }),
+                                            new Promise((_, reject) => setTimeout(() => reject('timeout_eval'), LOS_TIMEOUT_MS_PER_CAM))
+                                        ]);
+
+                                        // Kontrola průsečíků - stačí aby jeden paprsek viděl cíl
+                                        for(let i=0; i<targets.length; i++) {
+                                            const result = analysisView.results.getItemAt(i);
+                                            const tgPos = targets[i].position;
+                                            
+                                            // Paprsek proletěl úplně čistě
+                                            if (result.intersectedLocation === null) {
+                                                isVisible = true;
+                                                break;
+                                            } 
+                                            // Paprsek narazil, spočítáme 3D vzdálenost překážky a reálné polohy subcíle
+                                            const dx = result.intersectedLocation.x - tgPos.x;
+                                            const dy = result.intersectedLocation.y - tgPos.y;
+                                            const rz = typeof result.intersectedLocation.z === 'number' ? result.intersectedLocation.z : 0;
+                                            const tz = typeof tgPos.z === 'number' ? tgPos.z : 0;
+                                            
+                                            const dist3D = Math.sqrt(dx*dx + dy*dy + (rz - tz)*(rz - tz));
+                                            
+                                            // 2.0m tolerance od každého dílčího bodu
+                                            if (dist3D <= 2.0) {
+                                                isVisible = true;
+                                                break;
+                                            }
+                                        }
+
+                                        console.log(`[LOS Debug] Kamera ${item.cam.id}: viditelna=${isVisible} z volumetrickeho mraku`);
+                                        isResolved = true;
+
+                                    } catch (err) {
+                                        console.log(`[LOS Debug] Kamera ${item.cam.id} selhala nebou timeout:`, err);
+                                        // Fallback - v případě timeoutu dáme viditelné, jak to bylo v historii
+                                        isVisible = false; 
+                                    }
+
+                                    console.log(`[LOS Debug] Kamera ${item.cam.id}: viditelná=${isVisible}, resolved=${isResolved}`);
+
+                                    results.push({
+                                        cam: item.cam,
+                                        losVisible: isVisible,
+                                        losResolved: isResolved
+                                    });
+
+                                    // Očištění view
+                                    if (view.analyses.includes(losAnalysis)) {
+                                        view.analyses.remove(losAnalysis);
+                                    }
+                                    losAnalysis.destroy();
+
+                                    await new Promise(r => requestAnimationFrame(r));
+                                }
+
                                 return results;
                             }
 
                             // --- Geometrický test kužele (pre-filter před LOS) ---
                             // Pozn.: ArcGIS Viewshed tilt: 90°=horizontálně, 0°=zenit, 180°=nadir
-                            // Oprava: pracuje se snapshot hodnotami, NE s živou referencí cam.vs
+                            // Bug 2A: SR-aware převod dx/dy na metry před math (WGS84 → metry)
                             function isInViewshedCone(snap, queryPoint) {
-                                const obs    = snap.observer;
-                                const dx     = queryPoint.x - obs.x;
-                                const dy     = queryPoint.y - obs.y;
-                                const dz     = (queryPoint.z || 0) - (obs.z || 0);
+                                const obs = snap.observer;
+
+                                // Bug 2A: pokud observer je v geografickém SR (stupně),
+                                // musíme dx/dy převést na metry pro korektní bearing a dist výpočet.
+                                // Z je vždy v metrech (ArcGIS absolutní výška).
+                                let dx, dy;
+                                const obsIsGeo = obs.spatialReference
+                                    ? (obs.spatialReference.isGeographic || obs.spatialReference.wkid === 4326)
+                                    : (Math.abs(obs.x) <= 180 && Math.abs(obs.y) <= 90);
+                                if (obsIsGeo) {
+                                    // 1°lat ≈ 111320m, 1°lon ≈ 111320*cos(lat)m
+                                    const latRad = obs.y * Math.PI / 180;
+                                    dy = (queryPoint.y - obs.y) * 111320;
+                                    dx = (queryPoint.x - obs.x) * 111320 * Math.cos(latRad);
+                                } else {
+                                    // Metrický SR (Web Mercator apod.) — přímá diferencia
+                                    dx = queryPoint.x - obs.x;
+                                    dy = queryPoint.y - obs.y;
+                                    
+                                    // WebMercator scale factor corekce pro správné metry
+                                    const isWebMercator = obs.spatialReference && (obs.spatialReference.wkid === 102100 || obs.spatialReference.wkid === 3857);
+                                    if (isWebMercator) {
+                                        const latRad = 2 * Math.atan(Math.exp(obs.y / 6378137)) - Math.PI / 2;
+                                        const scale = Math.cos(latRad);
+                                        dx *= scale;
+                                        dy *= scale;
+                                    }
+                                }
+                                const dz = (queryPoint.z || 0) - (obs.z || 0);
                                 const dist2d = Math.sqrt(dx * dx + dy * dy);
                                 const dist3d = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
                                 // 1. Vzdálenostní check (15 % tolerance)
                                 const farDist = (snap.farDistance || 200) * 1.15;
                                 if (dist3d > farDist) {
-                                    return { inCone: false, dist: dist3d,
-                                        reason: `mimo dosah (${Math.round(dist3d)}m > ${Math.round(farDist)}m)` };
+                                    return {
+                                        inCone: false, dist: dist3d,
+                                        reason: `mimo dosah (${Math.round(dist3d)}m > ${Math.round(farDist)}m)`
+                                    };
                                 }
 
-                                // 2. Horizontální azimut check
+                                // 2. Horizontální azimut check (dx/dy v metrech → správný bearing)
                                 const bearing = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
-                                const hDiff   = Math.abs(((bearing - (snap.heading || 0) + 540) % 360) - 180);
-                                const hHalf   = (snap.horizontalFieldOfView || 90) / 2 * 1.05;
+                                const hDiff = Math.abs(((bearing - (snap.heading || 0) + 540) % 360) - 180);
+                                const hHalf = (snap.horizontalFieldOfView || 90) / 2 * 1.10; // 10% buf
                                 if (hDiff > hHalf) {
-                                    return { inCone: false, dist: dist3d,
-                                        reason: `mimo horiz. FOV (${Math.round(hDiff)}° > ±${Math.round(hHalf)}°)` };
+                                    return {
+                                        inCone: false, dist: dist3d,
+                                        reason: `mimo horiz. FOV (${Math.round(hDiff)}° > ±${Math.round(hHalf)}°)`
+                                    };
                                 }
 
-                                // 3. Vertikální úhel check
-                                const camElev   = (snap.tilt !== undefined ? snap.tilt : 60) - 90;
+                                // 3. Vertikální úhel check (dz/dist2d — obě v metrech → správný úhel)
+                                const camElev = (snap.tilt !== undefined ? snap.tilt : 60) - 90;
                                 const pointElev = Math.atan2(dz, dist2d) * 180 / Math.PI;
-                                const vHalf     = (snap.verticalFieldOfView || 45) / 2 * 1.05;
+                                const vHalf = (snap.verticalFieldOfView || 60) / 2 * 1.10; // 10% buf
                                 if (Math.abs(pointElev - camElev) > vHalf) {
-                                    return { inCone: false, dist: dist3d,
-                                        reason: `mimo vert. FOV (${Math.round(pointElev)}° vs ${Math.round(camElev)}°±${Math.round(vHalf)}°)` };
+                                    return {
+                                        inCone: false, dist: dist3d,
+                                        reason: `mimo vert. FOV (${Math.round(pointElev)}° vs ${Math.round(camElev)}°±${Math.round(vHalf)}°)`
+                                    };
                                 }
 
                                 return { inCone: true, dist: dist3d };
@@ -4827,6 +4996,12 @@
                             async function runCoverageQuery(queryPoint) {
                                 const myGen = ++_coverageQueryGen;
                                 coverageGraphicsLayer.removeAll();
+                                if (isIsolated) {
+                                    restoreIsolatedCameras();
+                                    isIsolated = false;
+                                    isolateCoverageBtn.textContent = "Zobrazit pouze pokrývající";
+                                    isolateCoverageBtn.iconStart = "view-visible";
+                                }
 
                                 const store = window.cameraStore || [];
                                 // Filtr: pouze kamery s platným vs.observer
@@ -4842,12 +5017,12 @@
                                 const snapshots = visibleCams.map(c => ({
                                     cam: c,
                                     snap: {
-                                        observer:             c.vs.observer.clone(),
-                                        heading:              c.vs.heading,
-                                        tilt:                 c.vs.tilt,
+                                        observer: c.vs.observer.clone(),
+                                        heading: c.vs.heading,
+                                        tilt: c.vs.tilt,
                                         horizontalFieldOfView: c.vs.horizontalFieldOfView,
-                                        verticalFieldOfView:   c.vs.verticalFieldOfView,
-                                        farDistance:          c.vs.farDistance
+                                        verticalFieldOfView: c.vs.verticalFieldOfView,
+                                        farDistance: c.vs.farDistance
                                     }
                                 }));
 
@@ -4857,10 +5032,14 @@
                                     symbol: {
                                         type: "point-3d",
                                         symbolLayers: [
-                                            { type: "object", resource: { primitive: "sphere" },
-                                              material: { color: [255, 107, 53, 1] }, width: 3, height: 3, depth: 3 },
-                                            { type: "line", material: { color: [255, 107, 53, 1] },
-                                              size: 2, castShadows: false }
+                                            {
+                                                type: "object", resource: { primitive: "sphere" },
+                                                material: { color: [255, 107, 53, 1] }, width: 3, height: 3, depth: 3
+                                            },
+                                            {
+                                                type: "line", material: { color: [255, 107, 53, 1] },
+                                                size: 2, castShadows: false
+                                            }
                                         ],
                                         verticalOffset: { screenLength: 0, maxWorldLength: 0, minWorldLength: 0 }
                                     }
@@ -4869,14 +5048,14 @@
                                 // Fáze 1: geometrický kuželprediktor (sync, rychle)
                                 showNotification("Analyzuji pokrytí bodu… (1/2 kuželel)", "info");
                                 const conePass = [];   // [{cam, snap, dist}]
-                                const results  = [];   // [{cam, covered, dist, reason}]
+                                const results = [];   // [{cam, covered, dist, reason}]
 
                                 for (const item of snapshots) {
                                     const ct = isInViewshedCone(item.snap, queryPoint);
                                     if (ct.inCone) {
                                         conePass.push({ cam: item.cam, snap: item.snap, dist: ct.dist });
                                     } else {
-                                        results.push({ cam: item.cam, covered: false, dist: ct.dist, reason: ct.reason });
+                                        results.push({ cam: item.cam, covered: false, dist: ct.dist, reason: ct.reason, losResolved: true });
                                     }
                                 }
 
@@ -4900,7 +5079,8 @@
                                         const dist = item ? item.dist : 0;
                                         results.push({
                                             cam: lr.cam, covered: lr.losVisible, dist,
-                                            reason: lr.losVisible ? null : "blokuje 3D mesh / budova"
+                                            reason: lr.losVisible ? null : "blokuje 3D mesh / budova",
+                                            losResolved: lr.losResolved
                                         });
                                         if (lr.losVisible) {
                                             const obs = item.snap.observer;
@@ -4908,13 +5088,15 @@
                                                 geometry: {
                                                     type: "polyline",
                                                     paths: [[[obs.x, obs.y, obs.z || 0],
-                                                             [queryPoint.x, queryPoint.y, queryPoint.z || 0]]],
+                                                    [queryPoint.x, queryPoint.y, queryPoint.z || 0]]],
                                                     hasZ: true, spatialReference: view.spatialReference
                                                 },
                                                 symbol: {
                                                     type: "line-3d",
-                                                    symbolLayers: [{ type: "line",
-                                                        material: { color: [53, 172, 70, 0.75] }, size: 2 }]
+                                                    symbolLayers: [{
+                                                        type: "line",
+                                                        material: { color: [53, 172, 70, 0.75] }, size: 2
+                                                    }]
                                                 }
                                             }));
                                         }
@@ -4931,15 +5113,28 @@
                                     .forEach(r => {
                                         const li = document.createElement("calcite-list-item");
                                         li.label = r.cam.label || `Kamera ${r.cam.id}`;
-                                        li.description = r.covered
-                                            ? `\u2714 Pokryt \u00b7 ${Math.round(r.dist)} m`
-                                            : `\u2718 ${r.reason} \u00b7 ${Math.round(r.dist)} m`;
+                                        if (r.losResolved === false && !r.covered) {
+                                            li.description = `\u26A0 LOS neověřeno (timeout) \u00b7 ${Math.round(r.dist)} m`;
+                                            li.style.setProperty("--calcite-ui-text-2", "var(--calcite-ui-warning)");
+                                        } else {
+                                            li.description = r.covered
+                                                ? `\u2714 Pokryt \u00b7 ${Math.round(r.dist)} m`
+                                                : `\u2718 ${r.reason} \u00b7 ${Math.round(r.dist)} m`;
+                                        }
                                         li.dataset.covered = String(r.covered);
                                         li.dataset.camId = String(r.cam.id);
                                         li.addEventListener("click", () => {
-                                            if (analysisView && r.cam.vs) analysisView.selectedViewshed = r.cam.vs;
-                                            const obs = r.cam.vs?.observer;
-                                            if (obs) view.goTo({ target: obs, zoom: 17 }, { duration: 800 });
+                                            const vs = r.cam.vs;
+                                            if (analysisView && vs) analysisView.selectedViewshed = vs;
+                                            // Bug 3+4: replikuje přesně Správce kamer (ř. 4502)
+                                            // — heading + tilt místo zoom:17 (zoom:17 = globální úroveň → oddaluje)
+                                            if (vs?.observer) {
+                                                view.goTo({
+                                                    target: vs.observer,
+                                                    heading: vs.heading,
+                                                    tilt: 45
+                                                }, { duration: 800 });
+                                            }
                                         });
                                         coverageResultList.appendChild(li);
                                     });
@@ -4989,23 +5184,36 @@
                                     event.stopPropagation();
                                     deactivateCoverageQuery();
 
-                                    // view.hitTest() = přichátá na skutečný povrch meshe (ne DTM ground)
+                                    // Správné zachycení Z analytického bodu:
+                                    // event.mapPoint.z = GPU depth buffer → přesná souřadnice na meshu/terénu
+                                    // hitTest doplní informaci o vrstvě, ale Z vždy berme z event.mapPoint
+                                    // (hitTest může vrátit nulu pro groundPoint = DEM, nikoliv mesh Z).
                                     let queryPoint = event.mapPoint;
                                     try {
                                         const hitResult = await view.hitTest(event);
-                                        // Preferujeme hit na scene geometry (mesh), fallback na groundPoint
-                                        const sceneHit = hitResult.results.find(
-                                            r => r.mapPoint && r.layer !== coverageGraphicsLayer
+                                        // Hledáme hit na SCENE GEOMETRII (mesh, budovy) — ne na grafice kamer
+                                        const meshHit = hitResult.results.find(
+                                            r => r.mapPoint &&
+                                                r.layer !== coverageGraphicsLayer &&
+                                                r.layer !== cameraGraphicsLayer &&
+                                                !r.graphic // žádná grafika — pouze raw mesh/terrain hit
                                         );
-                                        if (sceneHit?.mapPoint) {
-                                            queryPoint = sceneHit.mapPoint;
-                                        } else if (hitResult.groundPoint) {
-                                            queryPoint = hitResult.groundPoint;
+                                        if (meshHit?.mapPoint) {
+                                            // Použijeme x,y z meshu ALE z z event.mapPoint (depth buffer)
+                                            // — zabraňuje situaci, kdy mapPoint.z = 0 nebo DEM elevation
+                                            queryPoint = new Point({
+                                                x: meshHit.mapPoint.x,
+                                                y: meshHit.mapPoint.y,
+                                                z: event.mapPoint.z ?? meshHit.mapPoint.z,
+                                                spatialReference: meshHit.mapPoint.spatialReference
+                                            });
                                         }
+                                        // Fallback: event.mapPoint má depth-buffer Z = správný
                                     } catch (err) {
                                         console.warn("hitTest failed, using mapPoint:", err);
                                     }
                                     if (!queryPoint) return;
+                                    console.log("[CQT] QueryPoint Z:", queryPoint.z, "event.mapPoint.z:", event.mapPoint?.z);
                                     await runCoverageQuery(queryPoint);
                                 });
                             });
@@ -5013,6 +5221,7 @@
                             clearCoverageQueryBtn.addEventListener("click", () => {
                                 coverageGraphicsLayer.removeAll();
                                 coverageResultPanel.style.display = "none";
+                                coverageResultList.innerHTML = "";
                                 if (isIsolated) { restoreIsolatedCameras(); isIsolated = false; }
                                 // OPRAVA A: Zruší interaktivní binding analysisView, který mutuje cam.vs
                                 // parametry (observer, heading, tilt). Bez tohoto zůstávají
@@ -5195,7 +5404,10 @@
                             previewContainer.style.pointerEvents = isPreviewExpanded ? "auto" : "none";
                             expandPreviewButton.textContent = isPreviewExpanded ? "Zmenšit náhled" : "Zvětšit náhled";
                             // Překreslit FOV overlay po změně rozměrů
-                            requestAnimationFrame(() => updateFOVOverlay(analysisView?.selectedViewshed));
+                            requestAnimationFrame(() => {
+                                updatePreviewCamera(analysisView?.selectedViewshed);
+                                updateFOVOverlay(analysisView?.selectedViewshed);
+                            });
                         };
 
                         showAppContainer();
