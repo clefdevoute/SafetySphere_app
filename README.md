@@ -1,4 +1,12 @@
-## Co přináší nová verze SafetySphere 3.0 (https://clefdevoute.github.io/SafetySphere_app/):
+> 📢 **DŮLEŽITÉ OZNÁMENÍ / IMPORTANT ANNOUNCEMENT**
+> 
+> 🇨🇿 **Vývoj aplikace se posunul. Nové komerční verze SafetySphere Pro a SafetySphere Ultimate jsou aktuálně v pokročilém stadiu testování a přinášejí mnoho zásadních novinek. Více informací naleznete na [www.twingis.cz](https://www.twingis.cz).**
+> 
+> 🇬🇧 **Application development has moved forward. The new commercial versions, SafetySphere Pro and SafetySphere Ultimate, are currently in an advanced stage of testing and bring many major new features. More information can be found at [www.twingis.cz](https://www.twingis.cz).**
+
+---
+
+## Co přináší verze SafetySphere 3.0 (https://clefdevoute.github.io/SafetySphere_app/):
 
 ### Nové funkce:
 1. **Nástroj pro kreslení 3D zón (buffer zóny)** - umožňuje vytvářet 3D buffery kolem bodů, linií nebo polygonů
@@ -38,12 +46,6 @@ Aplikace slouží k vizualizaci a analýze detailního 3D digitálního dvojčet
 This interactive web application was developed as part of my diploma thesis at Jan Evangelista Purkyne University in Ústí nad Labem, Faculty of Environment, Department of Geoinformatics. Version 3.0 significantly extends the functionality with advanced tools for 3D analysis and visualization.
 
 The application visualizes and allows for analysis of a detailed 3D digital twin of the large ACHVL industrial complex (Lovosice Chemical Plant). Its primary goal is to demonstrate the practical application of digital twins and geoinformation tools to support crisis and safety management.
-
-> 📢 **OZNÁMENÍ / ANNOUNCEMENT**
-> 
-> 🇨🇿 **Verze aplikace SafetySphere Pro a Ultimate jsou v pokročilém stadiu testování a přinášejí mnoho zásadních novinek. Více informací naleznete na [www.twingis.cz](https://www.twingis.cz).**
-> 
-> 🇬🇧 **The Pro and Ultimate versions of the SafetySphere application are in an advanced stage of testing and bring many major new features. More information can be found at [www.twingis.cz](https://www.twingis.cz).**
 
 ## Klíčové vlastnosti (Key Features)
 
