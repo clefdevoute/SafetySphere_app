@@ -39,6 +39,12 @@ This interactive web application was developed as part of my diploma thesis at J
 
 The application visualizes and allows for analysis of a detailed 3D digital twin of the large ACHVL industrial complex (Lovosice Chemical Plant). Its primary goal is to demonstrate the practical application of digital twins and geoinformation tools to support crisis and safety management.
 
+> 📢 **OZNÁMENÍ / ANNOUNCEMENT**
+> 
+> 🇨🇿 **Verze aplikace SafetySphere Pro a Ultimate jsou v pokročilém stadiu testování a přinášejí mnoho zásadních novinek. Více informací naleznete na [www.twingis.cz](https://www.twingis.cz).**
+> 
+> 🇬🇧 **The Pro and Ultimate versions of the SafetySphere application are in an advanced stage of testing and bring many major new features. More information can be found at [www.twingis.cz](https://www.twingis.cz).**
+
 ## Klíčové vlastnosti (Key Features)
 
 ### Základní funkcionalita:
