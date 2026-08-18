@@ -1,8 +1,7 @@
-> 📢 **DŮLEŽITÉ OZNÁMENÍ / IMPORTANT ANNOUNCEMENT**
+> **Update:** 
+> 🇨🇿 Vývoj SafetySphere aktivně pokračuje. Verze **Pro** a **Ultimate** jsou aktuálně v pokročilém stadiu testování a přinášejí řadu zásadních novinek a vylepšení. Více informací naleznete na [www.twingis.cz](https://www.twingis.cz).
 > 
-> 🇨🇿 **Vývoj aplikace se posunul. Nové komerční verze SafetySphere Pro a SafetySphere Ultimate jsou aktuálně v pokročilém stadiu testování a přinášejí mnoho zásadních novinek. Více informací naleznete na [www.twingis.cz](https://www.twingis.cz).**
-> 
-> 🇬🇧 **Application development has moved forward. The new commercial versions, SafetySphere Pro and SafetySphere Ultimate, are currently in an advanced stage of testing and bring many major new features. More information can be found at [www.twingis.cz](https://www.twingis.cz).**
+> 🇬🇧 Development of SafetySphere is actively ongoing. The **Pro** and **Ultimate** versions are currently in an advanced stage of testing, bringing a wide range of major new features and improvements. More information can be found at [www.twingis.cz](https://www.twingis.cz).
 
 ---
 
